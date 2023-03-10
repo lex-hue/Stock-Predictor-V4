@@ -26,10 +26,12 @@ X = create_sequences(data_norm, timesteps)
 # Load model
 model = load_model('model.h5')
 
-# Predict next 1 month
-future_time_steps = 30
+# Ask user for number of days to predict
+num_days = int(input("Enter the number of days to predict: "))
+
+# Predict next n days
 X_future = X[-1:, :, :]
-for i in range(future_time_steps):
+for i in range(num_days):
     y_pred = model.predict(X_future)
     X_future = np.append(X_future[:, 1:, :], y_pred.reshape(1, 1, -1), axis=1)
 
@@ -40,7 +42,7 @@ y_pred_inv = X_future_inv[:, 3]
 # Plot the predicted prices
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.plot(data['Date'], data['Close'])
-ax.plot(data['Date'].iloc[-1:].append(pd.date_range(start=data['Date'].iloc[-1]+pd.Timedelta(days=1), periods=future_time_steps, freq='D')), y_pred_inv)
+ax.plot(data['Date'].iloc[-1:].append(pd.date_range(start=data['Date'].iloc[-1]+pd.Timedelta(days=1), periods=num_days, freq='D')), y_pred_inv)
 ax.legend(['Actual', 'Predicted'])
 ax.set_title('Stock price prediction')
 ax.set_xlabel('Date')
