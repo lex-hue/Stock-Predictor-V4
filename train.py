@@ -1,10 +1,28 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.externals import joblib
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
+import tensorflow as tf
+from tensorflow.keras.callbacks import Callback
+from sklearn.metrics import accuracy_score
+
+# Define reward function
+def get_reward(y_true, y_pred):
+    # Calculate accuracy score
+    acc_score = accuracy_score(y_true, np.round(y_pred))
+    # Return 1 as reward if accuracy is greater than 70%
+    return 1 if acc_score > 0.7 else 0
+
+# Define custom callback to calculate reward at end of each epoch
+class RLCallback(Callback):
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+    def on_epoch_end(self, epoch, logs={}):
+        y_pred = self.model.predict(self.X)
+        reward = get_reward(self.y, y_pred)
+        logs['reward'] = reward
 
 # Load data
 data = pd.read_csv("data.csv")
@@ -40,8 +58,9 @@ model.add(Dropout(0.2))
 model.add(Dense(units=1))
 model.compile(optimizer='adam', loss='mse')
 
-# Train model
-history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test))
+# Train model with RL
+rl_callback = RLCallback(X_test, y_test)
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test), callbacks=[rl_callback])
 
 # Save model
-joblib.dump(model, 'model.joblib', compress=False)
+model.save('model.h5')
