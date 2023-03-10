@@ -48,6 +48,10 @@ for i in range(30):
     else:
         rewards.append(0)
 
+    # Update the model if the accuracy is higher than 0.85
+    if accuracy > 0.85:
+        model.save('model.h5')
+
 # Plot results
 fig, axs = plt.subplots(3, 1, figsize=(10,10))
 axs[0].plot(mses)
