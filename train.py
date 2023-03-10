@@ -44,4 +44,4 @@ model.compile(optimizer='adam', loss='mse')
 history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test))
 
 # Save model
-joblib.dump(model, 'best_model.joblib', compress=True)
+joblib.dump(model, 'model.joblib', compress=False)
