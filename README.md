@@ -1,6 +1,6 @@
 # Stock-Predictor-V4
 
-This is still in the Writin, please wait till the scrpts are tested and this is done
+This is still in the Writing, please wait till the scripts are tested and this is done
 
 ## 1a. Setup
 ```
