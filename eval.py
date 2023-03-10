@@ -38,6 +38,7 @@ accuracies = []
 rewards = []
 mses = []
 for i in range(30):
+    print(f"Evaluating model {i+1}/30")
     loss, mse = model.evaluate(X_test, y_test, verbose=0)
     y_pred = model.predict(X_test)
     accuracy = sum(np.round(y_pred) == y_test)/len(y_test)
