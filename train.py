@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.externals import joblib
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 # Load data
 data = pd.read_csv("data.csv")
@@ -40,17 +40,8 @@ model.add(Dropout(0.2))
 model.add(Dense(units=1))
 model.compile(optimizer='adam', loss='mse')
 
-# Define callbacks
-early_stopping = EarlyStopping(monitor='val_loss', patience=5)
-checkpoint = ModelCheckpoint('best_model.h5', monitor='val_loss', save_best_only=True)
-
 # Train model
-history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test), callbacks=[early_stopping, checkpoint])
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test))
 
-# Load best model
-model = tf.keras.models.load_model('best_model.h5')
-
-# Evaluate model on test data
-y_pred = model.predict(X_test)
-rmse = np.sqrt(np.mean((y_pred - y_test)**2))
-print(f"RMSE: {rmse}")
+# Save model
+joblib.dump(model, 'best_model.joblib', compress=True)
