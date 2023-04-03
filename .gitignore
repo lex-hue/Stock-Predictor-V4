@@ -10,6 +10,11 @@ ta-lib*
 # Data in Data folder
 data/*.csv
 
+# Saved data by Scripts
+data.csv
+prepared.png
+model.h5
+
 # C extensions
 *.so
 
