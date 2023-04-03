@@ -44,6 +44,7 @@ Overall, my Stock-Predictor project is structured in a way that allows me to sys
 ```
 git clone https://github.com/Qerim-iseni09/Stock-Predictor-V4.git
 cd Stock-Predictor-V4
+chmod +x install.sh
 ./install.sh # Ignore the 2 Messages
 ```
 

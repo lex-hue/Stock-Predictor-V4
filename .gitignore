@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Talib
+ta-lib/
+ta-lib*
+
 # C extensions
 *.so
 
