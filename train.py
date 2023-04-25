@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
-import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sklearn.metrics import accuracy_score
 
@@ -17,6 +17,7 @@ def get_reward(y_true, y_pred):
 # Define custom callback to calculate reward at end of each epoch
 class RLCallback(Callback):
     def __init__(self, X, y):
+        super().__init__()
         self.X = X
         self.y = y
     def on_epoch_end(self, epoch, logs={}):
