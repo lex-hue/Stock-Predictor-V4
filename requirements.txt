@@ -3,4 +3,4 @@ matplotlib
 ta-lib
 numpy
 scikit-learn
-tensorflow-cpu==2.8.0
+tensorflow-cpu
