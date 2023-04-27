@@ -1,7 +1,11 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
+from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
 # Load data
@@ -19,7 +23,6 @@ test_data_norm = scaler.transform(test_data[['Open', 'High', 'Low', 'Close', 'Ad
 # Define time steps
 timesteps = 100
 
-# Create sequences of timesteps
 def create_sequences(data, timesteps):
     X = []
     y = []
@@ -34,31 +37,34 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 model = load_model('model.h5')
 
 # Evaluate model
-accuracies = []
+rmse_scores = []
+r2_scores = []
 rewards = []
-mses = []
 for i in range(30):
     print(f"Evaluating model {i+1}/30")
-    loss, mse = model.evaluate(X_test, y_test, verbose=0)
     y_pred = model.predict(X_test)
-    accuracy = sum(np.round(y_pred) == y_test)/len(y_test)
-    accuracies.append(accuracy)
-    mses.append(mse)
-    if accuracy > 0.85:
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+    rmse_scores.append(rmse)
+    r2_scores.append(r2)
+    if r2 > 0.8:
         rewards.append(1)
+        model.save('model.h5')
     else:
         rewards.append(0)
 
-    # Update the model if the accuracy is higher than 0.85
-    if accuracy > 0.85:
-        model.save('model.h5')
+
+# Print results
+print(f"Mean RMSE: {np.mean(rmse_scores)}")
+print(f"Mean R2: {np.mean(r2_scores)}")
+print(f"Total Rewards: {sum(rewards)}")
 
 # Plot results
 fig, axs = plt.subplots(3, 1, figsize=(10,10))
-axs[0].plot(mses)
-axs[0].set_title('MSE')
-axs[1].plot(accuracies)
-axs[1].set_title('Accuracy')
+axs[0].plot(rmse_scores)
+axs[0].set_title('RMSE')
+axs[1].plot(r2_scores)
+axs[1].set_title('R2 Score')
 axs[2].plot(rewards)
 axs[2].set_title('Rewards')
 plt.tight_layout()
