@@ -1,7 +1,11 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
+from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
 # Load data
@@ -33,30 +37,25 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 # Load model
 model = load_model('model.h5')
 
-# Define accuracy threshold and reward threshold
-accuracy_threshold = 0.895
-reward_threshold = 0.03
+# Define reward threshold
+reward_threshold = 2.6
 
 # Initialize rewards
 rewards = []
 
 while True:
     # Evaluate model
-    loss, mse = model.evaluate(X_test, y_test, verbose=0)
     y_pred = model.predict(X_test)
-    accuracy = sum(np.round(y_pred) == y_test)/len(y_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
 
-    # Append accuracy to rewards
-    rewards.append(accuracy)
+    # Append rewards
+    rewards.append(r2)
 
-    # Print current accuracy and rewards
-    print("Accuracy:", accuracy)
+    # Print current rewards
+    print("RMSE:", np.sqrt(mse))
+    print("R2:", r2)
     print("Rewards:", rewards)
-
-    # Check if accuracy threshold is reached
-    if accuracy >= accuracy_threshold:
-        print("Accuracy threshold reached!")
-        break
 
     # Check if reward threshold is reached
     if len(rewards) >= 3 and sum(rewards[-3:]) >= reward_threshold:
@@ -64,5 +63,5 @@ while True:
         model.save('model.h5')
         break
 
-    # Fine-tune model if accuracy is not high enough
+    # Fine-tune model
     model.fit(X_test, y_test, epochs=1, verbose=0)
