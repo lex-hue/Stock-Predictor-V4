@@ -8,6 +8,8 @@ from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
+print("TensorFlow version:", tf.__version__)
+
 # Load data
 data = pd.read_csv("data.csv")
 
