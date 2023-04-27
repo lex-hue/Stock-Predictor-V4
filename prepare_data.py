@@ -17,6 +17,9 @@ df['lower_band_supertrend'] = df['Low'] + (df['ATR'] * 2)
 df['in_uptrend'] = df['Close'] > df['lower_band_supertrend']
 df['supertrend_signal'] = df['in_uptrend'].diff().fillna(0)
 
+# Fill missing values with 0
+df.fillna(0, inplace=True)
+
 # Save the DataFrame to a new CSV file with indicators
 df.to_csv('data.csv', index=False)
 

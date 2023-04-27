@@ -1,3 +1,6 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
@@ -46,14 +49,34 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 
 # Build model
 model = Sequential()
-model.add(LSTM(units=50, input_shape=(X_train.shape[1], X_train.shape[2])))
+
+# Add first LSTM layer with 100 units
+model.add(LSTM(units=100, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
 model.add(Dropout(0.2))
+
+# Add second LSTM layer with 50 units
+model.add(LSTM(units=50, return_sequences=True))
+model.add(Dropout(0.2))
+
+# Add third LSTM layer with 25 units
+model.add(LSTM(units=25))
+model.add(Dropout(0.2))
+
+# Add first dense layer with 50 units
+model.add(Dense(units=50, activation='relu'))
+
+# Add second dense layer with 25 units
+model.add(Dense(units=25, activation='relu'))
+
+# Add output layer
 model.add(Dense(units=1))
+
 model.compile(optimizer='adam', loss='mse')
+
 
 # Train model with RL
 callback = Callback()
-history = model.fit(X_train, y_train, epochs=50, batch_size=32,
+history = model.fit(X_train, y_train, epochs=100, batch_size=50,
                     validation_data=(X_test, y_test), callbacks=[callback])
 
 # Save model
