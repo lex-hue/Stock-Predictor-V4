@@ -42,7 +42,7 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 model = load_model('model.h5')
 
 # Define reward threshold
-reward_threshold = 2.832
+reward_threshold = 2.85
 
 # Initialize rewards
 rewards = []
