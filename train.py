@@ -76,7 +76,7 @@ model.compile(optimizer='adam', loss='mse')
 
 # Train model with RL
 callback = Callback()
-history = model.fit(X_train, y_train, epochs=150, batch_size=50,
+history = model.fit(X_train, y_train, epochs=360, batch_size=50,
                     validation_data=(X_test, y_test), callbacks=[callback])
 
 # Save model
