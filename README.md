@@ -106,7 +106,8 @@ To fine tune the model, execute the following:
 python fine_tune.py
 ```
 
-This process will take some time, and it is recommended to hydrate yourself with some water while waiting for the fine-tuning to complete.
+It's advisable to stay hydrated with some water while waiting for the fine-tuning process to finish, as it may take some time. Once the fine-tuning is complete, attempt to run the "finetune.py" script until it loops only three times. If it fails to continue, keep running it until it has looped three times at least once.
+
 After fine-tuning is complete, it is recommended to re-evaluate the model.
 
 ---
