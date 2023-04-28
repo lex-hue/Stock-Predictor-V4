@@ -66,7 +66,7 @@ model.compile(optimizer='adam', loss='mean_squared_error', run_eagerly=True)
 # Define callbacks
 filepath="model.h5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-early_stopping = EarlyStopping(monitor='val_loss', patience=30)
+early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
 # Train model
 history = model.fit(X_train, y_train, epochs=150, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
