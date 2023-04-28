@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 print("TensorFlow version:", tf.__version__)
 
@@ -50,6 +51,8 @@ count = 0
 
 while True:
     os.system('clear')
+    # Load model
+    model = load_model('model.h5')
     print("Evaluating Model")
     # Evaluate model
     y_pred = model.predict(X_test)
@@ -72,6 +75,10 @@ while True:
         model.save('model.h5')
         break
     else:
+        # Set up callbacks
+        checkpoint = ModelCheckpoint("model.h5", save_best_only=True, verbose=1)
+        earlystop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
+
         # Fine-tune model)
-        print("\nReward threshold not reached, Trying to Finetune the Model with 5 Epochs.")
-        model.fit(X_test, y_test, epochs=5, batch_size=50, verbose=1)
+        print("\nReward threshold not reached, Trying to Finetune the Model with 100 Epochs. Will only save best results and will early stop after 5 non-improvements")
+        model.fit(X_test, y_test, epochs=100, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint,earlystop], verbose=1)

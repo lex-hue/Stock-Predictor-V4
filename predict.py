@@ -7,48 +7,37 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 
+print("TensorFlow version:", tf.__version__)
+
 # Load data
 data = pd.read_csv("data.csv")
 
 # Normalize data
 scaler = MinMaxScaler()
-data_norm = scaler.fit_transform(data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band',
-                                       'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'upper_band_supertrend', 'lower_band_supertrend']])
+data_norm = scaler.fit_transform(data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'upper_band_supertrend', 'lower_band_supertrend']])
 
 # Define time steps
 timesteps = 100
 
-# Create sequences of timesteps
-def create_sequences(data, timesteps):
-    X = []
-    y = []
-    for i in range(timesteps, len(data)):
-        X.append(data[i-timesteps:i])
-        y.append(data[i, 3])
-    X = np.array(X)
-    y = np.array(y)
-    return X, y
+# Extract the last 60 days of data
+last_60_days = data_norm[-60:]
 
-
-X, y = create_sequences(data_norm, timesteps)
+# Create a sequence of input data to predict the next 30 days
+X_test = np.array([last_60_days[i-timesteps:i] for i in range(timesteps, len(last_60_days)+1)])
 
 # Load model
+tf.config.run_functions_eagerly(True)
 model = load_model('model.h5')
 
-# Make predictions
-y_pred = model.predict(X)
+# Evaluate model
+y_pred = model.predict(X_test)
 
-# Scale back to original values
-y_pred = scaler.inverse_transform(np.concatenate((np.zeros((timesteps, 1)), y_pred), axis=0))[:, 0]
+# Inverse transform the predicted values
+y_pred_inv = scaler.inverse_transform(np.hstack((X_test[:, -1, :-1], y_pred.reshape(-1, 1))))
 
-# Plot and save predictions
-import matplotlib.pyplot as plt
+# Get the predicted prices for the next 30 days
+predicted_prices = y_pred_inv[:, -1]
 
-plt.plot(data['Date'], data['Close'], label='Actual')
-plt.plot(data['Date'][timesteps:], y_pred[timesteps:], label='Predicted')
-plt.legend()
-plt.savefig('predictions.png')
-
-# Save predictions to CSV
-df = pd.DataFrame({'Date': data['Date'][timesteps:], 'Predicted': y_pred[timesteps:]})
-df.to_csv('predictions.csv', index=False)
+# Print the predicted prices
+for i, price in enumerate(predicted_prices):
+    print(f"Day {i+1}: ${price:.2f}")

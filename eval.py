@@ -44,6 +44,7 @@ rmse_scores = []
 r2_scores = []
 rewards = []
 for i in range(30):
+    model = load_model('model.h5')
     print(f"Evaluating model {i+1}/30")
     y_pred = model.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))

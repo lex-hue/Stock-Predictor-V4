@@ -5,10 +5,11 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import Callback
 from sklearn.metrics import accuracy_score
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 print("TensorFlow version:", tf.__version__)
 
@@ -49,35 +50,34 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 
 # Build model
 model = Sequential()
-
-# Add first LSTM layer with 100 units
-model.add(LSTM(units=100, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
+model.add(LSTM(units=50, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
 model.add(Dropout(0.2))
-
-# Add second LSTM layer with 50 units
 model.add(LSTM(units=50, return_sequences=True))
 model.add(Dropout(0.2))
-
-# Add third LSTM layer with 25 units
-model.add(LSTM(units=25))
+model.add(LSTM(units=50))
 model.add(Dropout(0.2))
-
-# Add first dense layer with 50 units
-model.add(Dense(units=50, activation='relu'))
-
-# Add second dense layer with 25 units
-model.add(Dense(units=25, activation='relu'))
-
-# Add output layer
 model.add(Dense(units=1))
 
-model.compile(optimizer='adam', loss='mse')
+model.summary()
 
+# Compile model
+model.compile(optimizer='adam', loss='mean_squared_error', run_eagerly=True)
 
-# Train model with RL
-callback = Callback()
-history = model.fit(X_train, y_train, epochs=150, batch_size=50,
-                    validation_data=(X_test, y_test), callbacks=[callback])
+# Define callbacks
+filepath="model.h5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+early_stopping = EarlyStopping(monitor='val_loss', patience=30)
 
-# Save model
-model.save('model.h5')
+# Train model
+history = model.fit(X_train, y_train, epochs=150, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
+
+# Evaluate model
+model = load_model("model.h5")
+y_pred_train = model.predict(X_train)
+y_pred_test = model.predict(X_test)
+
+train_reward = get_reward(y_train, y_pred_train)
+test_reward = get_reward(y_test, y_pred_test)
+
+print("Train reward:", train_reward)
+print("Test reward:", test_reward)
