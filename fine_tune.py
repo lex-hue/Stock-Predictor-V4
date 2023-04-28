@@ -1,8 +1,10 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+import sys
 import pandas as pd
 import numpy as np
+import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -40,12 +42,15 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 model = load_model('model.h5')
 
 # Define reward threshold
-reward_threshold = 2.6
+reward_threshold = 2.832
 
 # Initialize rewards
 rewards = []
+count = 0
 
 while True:
+    os.system('clear')
+    print("Evaluating Model")
     # Evaluate model
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
@@ -55,15 +60,18 @@ while True:
     rewards.append(r2)
 
     # Print current rewards
+    print("Rewards:", rewards)
     print("RMSE:", np.sqrt(mse))
     print("R2:", r2)
-    print("Rewards:", rewards)
+    count += 1
+    print("Looped", count, "times.")
 
     # Check if reward threshold is reached
     if len(rewards) >= 3 and sum(rewards[-3:]) >= reward_threshold:
         print("Reward threshold reached!")
         model.save('model.h5')
         break
-
-    # Fine-tune model
-    model.fit(X_test, y_test, epochs=1, verbose=0)
+    else:
+        # Fine-tune model)
+        print("\nReward threshold not reached, Trying to Finetune the Model with 5 Epochs.")
+        model.fit(X_test, y_test, epochs=5, batch_size=50, verbose=1)
