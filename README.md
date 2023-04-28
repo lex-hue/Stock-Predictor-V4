@@ -99,7 +99,7 @@ After running this command, the accuracy, rewards, mean squared error (MSE), and
 
 ## 5. Fine Tuning the LSTM RL Model
 
-Fine tuning the LSTM RL model will take more time as it will train until it reaches a specific accuracy threshold. By default, the accuracy threshold is set to 89.5%. However, if you want to set a different accuracy threshold, open the fine_tune.py file and change the accuracy_threshold variable to your desired target accuracy.
+Fine tuning the LSTM RL model will take more time as it will train until it reaches a specific R2 threshold. By default, the R2 threshold is set to 2.832 (An R2 average of 0.944). However, if you want to set a different R2 threshold, open the fine_tune.py file and change the accuracy_threshold variable to your desired target accuracy.
 
 To fine tune the model, execute the following:
 ```
