@@ -3,6 +3,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import pandas as pd
 import numpy as np
+import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -49,7 +50,7 @@ for i in range(30):
     r2 = r2_score(y_test, y_pred)
     rmse_scores.append(rmse)
     r2_scores.append(r2)
-    if r2 > 0.8:
+    if r2 > 0.9:
         rewards.append(1)
         model.save('model.h5')
     else:
