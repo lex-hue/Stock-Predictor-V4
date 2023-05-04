@@ -30,7 +30,7 @@ X_data = create_sequences(data_norm, timesteps)
 model = load_model('model.h5')
 model.summary()
 
-num_predictions = 365
+num_predictions = 30
 
 # Make predictions for next num_predictions days
 X_pred = X_data[-num_predictions:].reshape((num_predictions, timesteps, X_data.shape[2]))
