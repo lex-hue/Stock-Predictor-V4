@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Lambda
 from tensorflow.keras.callbacks import Callback
 from sklearn.metrics import accuracy_score
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
@@ -16,7 +16,8 @@ print("TensorFlow version:", tf.__version__)
 # Define reward function
 def get_reward(y_true, y_pred):
     mse = np.mean((y_true - y_pred)**2)
-    reward = 1 / (1 + mse)  # Reward is inversely proportional to the MSE
+    acc = np.mean(y_true / y_pred)
+    reward = (acc - mse)
     return reward
 
 # Load data
@@ -50,11 +51,13 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 
 # Build model
 model = Sequential()
-model.add(LSTM(units=50, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+model.add(LSTM(units=300, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
 model.add(Dropout(0.2))
-model.add(LSTM(units=50, return_sequences=True))
+model.add(LSTM(units=200, return_sequences=True))
 model.add(Dropout(0.2))
-model.add(LSTM(units=50))
+model.add(LSTM(units=130, return_sequences=True))
+model.add(Dropout(0.2))
+model.add(LSTM(units=100))
 model.add(Dropout(0.2))
 model.add(Dense(units=1))
 

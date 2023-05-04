@@ -2,8 +2,6 @@
 
 ![stockpredictor ai logo](https://user-images.githubusercontent.com/53996451/224323224-3ec1cd20-747c-42ad-9fb1-ba6e0ecb358b.png)
 
-> Please note that this is still in the testing phase, so if you encounter any errors, please report them.
-
 ---
 # Content Table
 
@@ -71,27 +69,27 @@ To evaluate the trained model, execute the following:
 python eval.py
 ```
 
-After running this command, the accuracy, rewards, mean squared error (MSE), and root mean squared error (RMSE) will be plotted.
+After running this command, the root mean squared error (RMSE), mean R-squared and Total Rewards will be plotted.
 
 ---
 
 ## 5. Fine Tuning the LSTM RL Model
 
-Fine tuning the LSTM RL model will take more time as it will train until it reaches a specific R2 threshold. By default, the R2 threshold is set to 2.85 (An R2 average of 0.95). However, if you want to set a different R2 threshold, open the fine_tune.py file and change the accuracy_threshold variable to your desired target accuracy.
+Fine tuning the LSTM RL model will take more time as it will train until it reaches a specific R2 threshold. By default, the R2 threshold is set to 2.982 (An R2 average of 0.994). However, if you want to set a different R2 threshold, open the fine_tune.py file and change the accuracy_threshold variable to your desired target accuracy.
 
 To fine tune the model, execute the following:
 ```
 python fine_tune.py
 ```
 
-It's advisable to stay hydrated with some water while waiting for the fine-tuning process to finish, as it may take some time. Once the fine-tuning is complete, attempt to run the "finetune.py" script until it loops only three times. If it fails to continue, keep running it until it has looped three times at least once.
+It's advisable to stay hydrated with some water while waiting for the fine-tuning process to finish, as it may take some time. Once the fine-tuning is complete, attempt to run the "finetune.py" script until it loops only three times. If it doesnt loop 3 times, keep rerunning it until it has looped three times at least once.
 
 After fine-tuning is complete, it is recommended to re-evaluate the model.
 
 ---
 
-## 6. Utilizing the Model for Stock Market Prediction
-After completing the previous steps, you can use the model to predict the stock market for as many days as you want. The script will prompt you to enter the number of days to predict, and after plotting the predictions, it will ask you to rate the predictions on a scale of 1 to 10. The model will receive a reward based on your rating, which will help it improve its future predictions.
+## 4. Utilizing the Model for Stock Market Prediction
+Once the previous steps have been completed, the model can be utilized to forecast the stock market for the next 30 days beyond the latest date in the data. The predictions will be shown in the command line and saved as a CSV file.
 
 To use the model for prediction, run the following command:
 

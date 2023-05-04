@@ -14,6 +14,7 @@ data/*.csv
 data.csv
 prepared.png
 model.h5
+*.csv
 
 # C extensions
 *.so

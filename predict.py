@@ -4,10 +4,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-import tensorflow as tf
 from tensorflow.keras.models import load_model
-
-print("TensorFlow version:", tf.__version__)
+import matplotlib.pyplot as plt
 
 # Load data
 data = pd.read_csv("data.csv")
@@ -19,25 +17,34 @@ data_norm = scaler.fit_transform(data[['Open', 'High', 'Low', 'Close', 'Adj Clos
 # Define time steps
 timesteps = 100
 
-# Extract the last 60 days of data
-last_60_days = data_norm[-60:]
+# Create sequences of timesteps
+def create_sequences(data, timesteps):
+    X = []
+    for i in range(timesteps, len(data)):
+        X.append(data[i-timesteps:i])
+    return np.array(X)
 
-# Create a sequence of input data to predict the next 30 days
-X_test = np.array([last_60_days[i-timesteps:i] for i in range(timesteps, len(last_60_days)+1)])
+X_data = create_sequences(data_norm, timesteps)
 
 # Load model
-tf.config.run_functions_eagerly(True)
 model = load_model('model.h5')
+model.summary()
 
-# Evaluate model
-y_pred = model.predict(X_test)
+num_predictions = 365
 
-# Inverse transform the predicted values
-y_pred_inv = scaler.inverse_transform(np.hstack((X_test[:, -1, :-1], y_pred.reshape(-1, 1))))
+# Make predictions for next num_predictions days
+X_pred = X_data[-num_predictions:].reshape((num_predictions, timesteps, X_data.shape[2]))
+y_pred = model.predict(X_pred)[:, 0]
 
-# Get the predicted prices for the next 30 days
-predicted_prices = y_pred_inv[:, -1]
+# Inverse transform predictions
+y_pred = scaler.inverse_transform(np.hstack([np.zeros((len(y_pred), 17)), np.array(y_pred).reshape(-1, 1)]))[:, -1]
 
-# Print the predicted prices
-for i, price in enumerate(predicted_prices):
-    print(f"Day {i+1}: ${price:.2f}")
+# Generate date index for predictions
+last_date = data['Date'].iloc[-1]
+index = pd.date_range(last_date, periods=num_predictions, freq='D', tz='UTC').tz_localize(None)
+
+# Save predictions in a CSV file
+predictions = pd.DataFrame({'Date': index, 'Predicted Close': y_pred})
+predictions.to_csv('predictions.csv', index=False)
+
+print(predictions)
