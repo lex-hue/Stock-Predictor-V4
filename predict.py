@@ -59,7 +59,7 @@ max_pct_change_row = predictions.iloc[predictions['% Change'].idxmax()]
 min_pct_change_row = predictions.iloc[predictions['% Change'].idxmin()]
 
 # Print the rows with the lowest and highest predicted close and the highest and lowest % change
-print(f"Lowest predicted close:\n{min_close_row}\n")
 print(f"Highest predicted close:\n{max_close_row}\n")
+print(f"Lowest predicted close:\n{min_close_row}\n")
 print(f"Highest % change:\n{max_pct_change_row}\n")
 print(f"Lowest % change:\n{min_pct_change_row}")
