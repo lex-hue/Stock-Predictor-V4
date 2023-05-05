@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
-import matplotlib.pyplot as plt
 
 # Load data
 data = pd.read_csv("data.csv")
@@ -43,8 +42,24 @@ y_pred = scaler.inverse_transform(np.hstack([np.zeros((len(y_pred), 17)), np.arr
 last_date = data['Date'].iloc[-1]
 index = pd.date_range(last_date, periods=num_predictions, freq='D', tz='UTC').tz_localize(None)
 
-# Save predictions in a CSV file
-predictions = pd.DataFrame({'Date': index, 'Predicted Close': y_pred})
+# Calculate % change
+y_pred_pct_change = (y_pred - y_pred[0]) / y_pred[0] * 100
+
+# Save predictions and % change in a CSV file
+predictions = pd.DataFrame({'Date': index, 'Predicted Close': y_pred, '% Change': y_pred_pct_change})
 predictions.to_csv('predictions.csv', index=False)
 
+# Print predictions
 print(predictions)
+
+# Find the rows with the lowest and highest predicted close and the highest and lowest % change
+min_close_row = predictions.iloc[predictions['Predicted Close'].idxmin()]
+max_close_row = predictions.iloc[predictions['Predicted Close'].idxmax()]
+max_pct_change_row = predictions.iloc[predictions['% Change'].idxmax()]
+min_pct_change_row = predictions.iloc[predictions['% Change'].idxmin()]
+
+# Print the rows with the lowest and highest predicted close and the highest and lowest % change
+print(f"Lowest predicted close:\n{min_close_row}\n")
+print(f"Highest predicted close:\n{max_close_row}\n")
+print(f"Highest % change:\n{max_pct_change_row}\n")
+print(f"Lowest % change:\n{min_pct_change_row}")

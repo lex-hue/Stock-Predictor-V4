@@ -1,5 +1,4 @@
 pandas
-matplotlib
 ta-lib
 numpy
 scikit-learn
