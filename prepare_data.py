@@ -45,4 +45,3 @@ ax2.legend()
 plt.xlim(df.index[0], df.index[-1])
 
 plt.show()
-plt.savefig('prepared.png', dpi=1500)
