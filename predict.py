@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
+import matplotlib.pyplot as plt
 
 # Load data
 data = pd.read_csv("data.csv")
@@ -59,7 +60,31 @@ max_pct_change_row = predictions.iloc[predictions['% Change'].idxmax()]
 min_pct_change_row = predictions.iloc[predictions['% Change'].idxmin()]
 
 # Print the rows with the lowest and highest predicted close and the highest and lowest % change
-print(f"Highest predicted close:\n{max_close_row}\n")
+print(f"\n\nHighest predicted close:\n{max_close_row}\n")
 print(f"Lowest predicted close:\n{min_close_row}\n")
 print(f"Highest % change:\n{max_pct_change_row}\n")
 print(f"Lowest % change:\n{min_pct_change_row}")
+
+# Plot historical data and predictions
+plt.plot(data['Close'].values, label='Actual Data')
+plt.plot(np.arange(len(data), len(data)+num_predictions), y_pred, label='Predicted Data')
+
+# Add red and green arrows for highest and lowest predicted close respectively, and highest and lowest percentage change
+plt.annotate('↓', xy=(min_close_row.name - len(data), min_close_row['Predicted Close']), color='red', fontsize=16, arrowprops=dict(facecolor='red', shrink=0.05))
+plt.annotate('↑', xy=(max_close_row.name - len(data), max_close_row['Predicted Close']), color='green', fontsize=16, arrowprops=dict(facecolor='green', shrink=0.05))
+plt.annotate('↑', xy=(max_pct_change_row.name - len(data), y_pred.max()), color='green', fontsize=16, arrowprops=dict(facecolor='green', shrink=0.05))
+plt.annotate('↓', xy=(min_pct_change_row.name - len(data), y_pred.min()), color='red', fontsize=16, arrowprops=dict(facecolor='red', shrink=0.05))
+
+# Add legend and title
+plt.legend()
+plt.title('Predicted Close Prices')
+
+# Show plot
+plt.show()
+
+
+
+
+
+
+

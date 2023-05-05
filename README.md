@@ -13,6 +13,7 @@
   - [4. Evaluating the Model](#4-evaluating-the-model)
   - [5. Fine Tuning the LSTM RL Model](#5-fine-tuning-the-lstm-rl-model)
   - [6. Utilizing the Model for Stock Market Prediction](#6-utilizing-the-model-for-stock-market-prediction)
+  - [7. Comparing the predicted values with the actual values after the 30-day period.](#7-comparing-the-predicted-values-with-the-actual-values-after-the-30-day-period)
 
 ---
 
@@ -88,7 +89,7 @@ After fine-tuning is complete, it is recommended to re-evaluate the model.
 
 ---
 
-## 4. Utilizing the Model for Stock Market Prediction
+## 6. Utilizing the Model for Stock Market Prediction
 Once the previous steps have been completed, the model can be utilized to forecast the stock market for the next 30 days beyond the latest date in the data. The predictions will be shown in the command line and saved as a CSV file.
 
 To use the model for prediction, run the following command:
@@ -99,3 +100,16 @@ python predict.py
 
 And Happy Trading!
 However, please note that any losses incurred by utilizing the model's predictions are not the responsibility of the developer.
+
+---
+
+## 7. Comparing the predicted values with the actual values after the 30-day period.
+
+If you've reached the end of the 30-day predicted period and you're curious about the accuracy of the model, then the `compare.py` script can help you. To compare the data, you need to update the CSV file you selected in Step 2. Open the file and change `actual_data = pd.read_csv(os.path.join("data", "BTC-USD.csv"))` to `actual_data = pd.read_csv(os.path.join("data", "<your downloaded CSV file>"))`.
+
+After that, run the following command in your terminal:
+```
+python compare.py
+```
+
+This will compare the predicted data with the actual data. You may regret some of the decisions you made and wonder why you didn't trust the model (just kidding, don't take it too seriously!).
