@@ -29,8 +29,8 @@ test_data = data.iloc[int(0.8*len(data)):]
 
 # Normalize data
 scaler = MinMaxScaler()
-train_data_norm = scaler.fit_transform(train_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
-test_data_norm = scaler.transform(test_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
+train_data_norm = scaler.fit_transform(train_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
+test_data_norm = scaler.transform(test_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
 
 # Define time steps
 timesteps = 100
@@ -66,11 +66,11 @@ model.compile(optimizer='adam', loss='mean_squared_error', run_eagerly=True)
 
 # Define callbacks
 filepath="model.h5"
-checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='max')
 early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
 # Train model
-history = model.fit(X_train, y_train, epochs=150, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
+history = model.fit(X_train, y_train, epochs=150, batch_size=50, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
 
 # Evaluate model
 model = load_model("model.h5")

@@ -12,6 +12,8 @@ df['aroon_up'], df['aroon_down'] = talib.AROON(df['High'], df['Low'], timeperiod
 df['kicking'] = talib.CDLKICKINGBYLENGTH(df['Open'], df['High'], df['Low'], df['Close'])
 
 df['ATR'] = talib.ATR(df['High'], df['Low'], df['Close'], timeperiod=14)
+df['ADX'] = talib.ADX(df['High'], df['Low'], df['Close'], timeperiod=14)
+df['CCI'] = talib.CCI(df['High'], df['Low'], df['Close'], timeperiod=20)
 df['upper_band_supertrend'] = df['High'] - (df['ATR'] * 2)
 df['lower_band_supertrend'] = df['Low'] + (df['ATR'] * 2)
 df['in_uptrend'] = df['Close'] > df['lower_band_supertrend']

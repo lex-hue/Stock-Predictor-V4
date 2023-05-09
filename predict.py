@@ -12,7 +12,7 @@ data = pd.read_csv("data.csv")
 
 # Normalize data
 scaler = MinMaxScaler()
-data_norm = scaler.fit_transform(data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
+data_norm = scaler.fit_transform(data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
 
 # Define time steps
 timesteps = 100
