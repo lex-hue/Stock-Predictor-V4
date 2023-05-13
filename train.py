@@ -7,7 +7,6 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
-from tensorflow.keras.callbacks import Callback
 from sklearn.metrics import mean_absolute_percentage_error
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
@@ -28,8 +27,8 @@ test_data = data.iloc[int(0.8*len(data)):]
 
 # Normalize data
 scaler = MinMaxScaler()
-train_data_norm = scaler.fit_transform(train_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
-test_data_norm = scaler.transform(test_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
+train_data_norm = scaler.fit_transform(train_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
+test_data_norm = scaler.transform(test_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
 
 # Define time steps
 timesteps = 100
@@ -75,11 +74,7 @@ history = model.fit(X_train, y_train, epochs=150, batch_size=50, validation_data
 
 # Evaluate model
 model = load_model("model.h5")
-y_pred_train = model.predict(X_train)
 y_pred_test = model.predict(X_test)
-
-train_reward = get_reward(y_train, y_pred_train)
 test_reward = get_reward(y_test, y_pred_test)
 
-print("Train reward:", train_reward)
 print("Test reward:", test_reward)

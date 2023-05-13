@@ -12,7 +12,7 @@ data = pd.read_csv("data.csv")
 
 # Normalize data
 scaler = MinMaxScaler()
-data_norm = scaler.fit_transform(data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
+data_norm = scaler.fit_transform(data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
 
 # Define time steps
 timesteps = 100
@@ -37,7 +37,7 @@ X_pred = X_data[-num_predictions:].reshape((num_predictions, timesteps, X_data.s
 y_pred = model.predict(X_pred)[:, 0]
 
 # Inverse transform predictions
-y_pred = scaler.inverse_transform(y_pred.reshape(-1, 1)).flatten()
+y_pred = scaler.inverse_transform(np.hstack([np.zeros((len(y_pred), data_norm.shape[1]-1)), np.array(y_pred).reshape(-1, 1)]))[:, -1]
 
 # Generate date index for predictions
 last_date = data['Date'].iloc[-1]
@@ -50,7 +50,6 @@ y_pred_pct_change = (y_pred - y_pred[0]) / y_pred[0] * 100
 predictions = pd.DataFrame({'Date': index, 'Predicted Close': y_pred, '% Change': y_pred_pct_change})
 predictions.to_csv('predictions.csv', index=False)
 
-# Print predictions
 print(predictions)
 
 # Find the rows with the lowest and highest predicted close and the highest and lowest % change

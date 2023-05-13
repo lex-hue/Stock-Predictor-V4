@@ -24,7 +24,7 @@ df = df.replace({False: 0, True: 1})
 df.fillna(0, inplace=True)
 
 # Concatenate the columns in the order you want
-df2 = pd.concat([df['Date'], df['Close'], df['Adj Close'], df['Volume'], df['High'], df['Low'], df['SMA'], df['MACD'], df['upper_band'], df['middle_band'], df['lower_band'], df['supertrend_signal'], df['RSI'], df['aroon_up'], df['aroon_down'], df['kicking']], axis=1)
+df2 = pd.concat([df['Date'], df['Close'], df['Adj Close'], df['Volume'], df['High'], df['Low'], df['SMA'], df['MACD'], df['upper_band'], df['middle_band'], df['lower_band'], df['supertrend_signal'], df['RSI'], df['aroon_up'], df['aroon_down'], df['kicking'], df['upper_band_supertrend'], df['lower_band_supertrend']], axis=1)
 
 # Save the DataFrame to a new CSV file with indicators
 df2.to_csv('data.csv', index=False)
