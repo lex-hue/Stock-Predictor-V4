@@ -9,6 +9,7 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from sklearn.metrics import mean_absolute_percentage_error
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras import regularizers
 
 print("TensorFlow version:", tf.__version__)
 
@@ -47,16 +48,16 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 
 # Build model
 model = Sequential()
-model.add(LSTM(units=300, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
-model.add(Dropout(0.2))
-model.add(LSTM(units=300, return_sequences=True))
-model.add(Dropout(0.2))
-model.add(LSTM(units=250, return_sequences=True))
-model.add(Dropout(0.2))
-model.add(LSTM(units=200, return_sequences=True))
-model.add(Dropout(0.2))
-model.add(LSTM(units=150))
-model.add(Dropout(0.2))
+model.add(LSTM(units=300, return_sequences=True, input_shape=(timesteps, X_train.shape[2]), kernel_regularizer=regularizers.l2(0.01)))
+model.add(Dropout(0.3))
+model.add(LSTM(units=300, return_sequences=True, kernel_regularizer=regularizers.l2(0.01)))
+model.add(Dropout(0.3))
+model.add(LSTM(units=250, return_sequences=True, kernel_regularizer=regularizers.l2(0.01)))
+model.add(Dropout(0.3))
+model.add(LSTM(units=200, return_sequences=True, kernel_regularizer=regularizers.l2(0.01)))
+model.add(Dropout(0.3))
+model.add(LSTM(units=150, kernel_regularizer=regularizers.l2(0.01)))
+model.add(Dropout(0.3))
 model.add(Dense(units=1))
 
 model.summary()
@@ -70,7 +71,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_
 early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
 # Train model
-history = model.fit(X_train, y_train, epochs=150, batch_size=50, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
+history = model.fit(X_train, y_train, epochs=150, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
 
 # Evaluate model
 model = load_model("model.h5")
