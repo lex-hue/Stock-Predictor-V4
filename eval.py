@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 import matplotlib.pyplot as plt
 
 print("TensorFlow version:", tf.__version__)
@@ -20,8 +20,8 @@ test_data = data.iloc[int(0.8*len(data)):]
 
 # Normalize data
 scaler = MinMaxScaler()
-train_data_norm = scaler.fit_transform(train_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
-test_data_norm = scaler.transform(test_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
+train_data_norm = scaler.fit_transform(train_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
+test_data_norm = scaler.transform(test_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
 
 # Define time steps
 timesteps = 100
@@ -41,34 +41,33 @@ model = load_model('model.h5')
 
 # Evaluate model
 rmse_scores = []
-r2_scores = []
+mape_scores = []
 rewards = []
-for i in range(30):
+for i in range(10):
     model = load_model('model.h5')
-    print(f"Evaluating model {i+1}/30")
+    print(f"Evaluating model {i+1}/10")
     y_pred = model.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred)
+    mape = mean_absolute_percentage_error(y_test, y_pred)
     rmse_scores.append(rmse)
-    r2_scores.append(r2)
-    if r2 > 0.9:
+    mape_scores.append(mape)
+    if mape < 0.05:
         rewards.append(1)
         model.save('model.h5')
     else:
         rewards.append(0)
 
-
 # Print results
 print(f"Mean RMSE: {np.mean(rmse_scores)}")
-print(f"Mean R2: {np.mean(r2_scores)}")
+print(f"Mean MAPE: {np.mean(mape_scores)}")
 print(f"Total Rewards: {sum(rewards)}")
 
 # Plot results
 fig, axs = plt.subplots(3, 1, figsize=(10,10))
 axs[0].plot(rmse_scores)
 axs[0].set_title('RMSE')
-axs[1].plot(r2_scores)
-axs[1].set_title('R2 Score')
+axs[1].plot(mape_scores)
+axs[1].set_title('MAPE Score')
 axs[2].plot(rewards)
 axs[2].set_title('Rewards')
 plt.tight_layout()

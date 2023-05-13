@@ -8,16 +8,15 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import Callback
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_absolute_percentage_error
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 print("TensorFlow version:", tf.__version__)
 
 # Define reward function
 def get_reward(y_true, y_pred):
-    mse = np.mean((y_true - y_pred)**2)
-    acc = np.mean(y_true / y_pred)
-    reward = (acc - mse)
+    mape = mean_absolute_percentage_error(y_true, y_pred)
+    reward = (1 - mape)
     return reward
 
 # Load data
@@ -29,8 +28,8 @@ test_data = data.iloc[int(0.8*len(data)):]
 
 # Normalize data
 scaler = MinMaxScaler()
-train_data_norm = scaler.fit_transform(train_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
-test_data_norm = scaler.transform(test_data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
+train_data_norm = scaler.fit_transform(train_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
+test_data_norm = scaler.transform(test_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
 
 # Define time steps
 timesteps = 100
@@ -51,11 +50,13 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 model = Sequential()
 model.add(LSTM(units=300, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
 model.add(Dropout(0.2))
+model.add(LSTM(units=300, return_sequences=True))
+model.add(Dropout(0.2))
+model.add(LSTM(units=250, return_sequences=True))
+model.add(Dropout(0.2))
 model.add(LSTM(units=200, return_sequences=True))
 model.add(Dropout(0.2))
-model.add(LSTM(units=130, return_sequences=True))
-model.add(Dropout(0.2))
-model.add(LSTM(units=100))
+model.add(LSTM(units=150))
 model.add(Dropout(0.2))
 model.add(Dense(units=1))
 

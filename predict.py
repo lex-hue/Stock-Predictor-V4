@@ -12,7 +12,7 @@ data = pd.read_csv("data.csv")
 
 # Normalize data
 scaler = MinMaxScaler()
-data_norm = scaler.fit_transform(data[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'SMA', 'RSI', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'aroon_up', 'aroon_down', 'kicking', 'ATR', 'ADX', 'CCI', 'upper_band_supertrend', 'lower_band_supertrend', 'in_uptrend', 'supertrend_signal', 'EMA', 'STOCH_k', 'STOCH_d', 'obv', 'pct_change', 'money_change']])
+data_norm = scaler.fit_transform(data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking']])
 
 # Define time steps
 timesteps = 100
@@ -37,7 +37,7 @@ X_pred = X_data[-num_predictions:].reshape((num_predictions, timesteps, X_data.s
 y_pred = model.predict(X_pred)[:, 0]
 
 # Inverse transform predictions
-y_pred = scaler.inverse_transform(np.hstack([np.zeros((len(y_pred), 17)), np.array(y_pred).reshape(-1, 1)]))[:, -1]
+y_pred = scaler.inverse_transform(y_pred.reshape(-1, 1)).flatten()
 
 # Generate date index for predictions
 last_date = data['Date'].iloc[-1]
@@ -81,10 +81,3 @@ plt.title('Predicted Close Prices')
 
 # Show plot
 plt.show()
-
-
-
-
-
-
-
