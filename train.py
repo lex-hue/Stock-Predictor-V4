@@ -40,7 +40,7 @@ def create_sequences(data, timesteps):
     y = []
     for i in range(timesteps, len(data)):
         X.append(data[i-timesteps:i])
-        y.append(data[i, 3])
+        y.append(data[i, 0])
     return np.array(X), np.array(y)
 
 X_train, y_train = create_sequences(train_data_norm, timesteps)
@@ -63,7 +63,7 @@ model.add(Dense(units=1))
 model.summary()
 
 # Compile model
-model.compile(optimizer='adam', loss='mean_squared_error', run_eagerly=True)
+model.compile(optimizer='adam', loss='mean_squared_error')
 
 # Define callbacks
 filepath="model.h5"

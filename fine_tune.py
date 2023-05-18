@@ -34,7 +34,7 @@ def create_sequences(data, timesteps):
     y = []
     for i in range(timesteps, len(data)):
         X.append(data[i-timesteps:i])
-        y.append(data[i, 3])
+        y.append(data[i, 0])
     return np.array(X), np.array(y)
 
 X_test, y_test = create_sequences(test_data_norm, timesteps)
@@ -43,7 +43,7 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 model = load_model('model.h5')
 
 # Define reward threshold
-reward_threshold = 0.97
+reward_threshold = 0.94
 
 # Initialize rewards
 rewards = []
@@ -72,6 +72,14 @@ while True:
     if len(rewards) >= 3 and sum(rewards[-3:]) / 3 >= reward_threshold:
         print("Reward threshold reached!")
         model.save('model.h5')
+
+        # Plot results
+        fig, axs = plt.subplots(3, 1, figsize=(10,10))
+        axs[2].plot(rewards)
+        axs[2].set_title('Rewards')
+        plt.tight_layout()
+        plt.show()
+
         break
     else:
         # Set up callbacks
