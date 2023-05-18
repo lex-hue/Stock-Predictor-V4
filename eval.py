@@ -34,8 +34,6 @@ def create_sequences(data, timesteps):
         y.append(data[i, 0])
     return np.array(X), np.array(y)
 
-X_test, y_test = create_sequences(test_data_norm, timesteps)
-
 # Load model
 model = load_model('model.h5')
 
@@ -46,16 +44,17 @@ rewards = []
 for i in range(10):
     model = load_model('model.h5')
     print(f"Evaluating model {i+1}/10")
+    X_test, y_test = create_sequences(test_data_norm, timesteps)
     y_pred = model.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mape = mean_absolute_percentage_error(y_test, y_pred)
     rmse_scores.append(rmse)
     mape_scores.append(mape)
     if mape < 0.05:
-        rewards.append(1)
+        rewards.append(1 - mape)
         model.save('model.h5')
     else:
-        rewards.append(0)
+        rewards.append(0.3 - mape)
 
 # Print results
 print(f"Mean RMSE: {np.mean(rmse_scores)}")

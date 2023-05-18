@@ -37,8 +37,6 @@ def create_sequences(data, timesteps):
         y.append(data[i, 0])
     return np.array(X), np.array(y)
 
-X_test, y_test = create_sequences(test_data_norm, timesteps)
-
 # Load model
 model = load_model('model.h5')
 
@@ -55,6 +53,8 @@ while True:
     model = load_model('model.h5')
     print("Evaluating Model")
     # Evaluate model
+    X_train, y_train = create_sequences(train_data_norm, timesteps)
+    X_test, y_test = create_sequences(test_data_norm, timesteps)
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     mape = mean_absolute_percentage_error(y_test, y_pred)
@@ -87,5 +87,6 @@ while True:
         earlystop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
 
         # Fine-tune model)
-        print("\nReward threshold not reached, Trying to Finetune the Model with 100 Epochs. Will only save best results and will early stop after 5 non-improvements")
-        model.fit(X_test, y_test, epochs=100, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint,earlystop], verbose=1)
+        print("\nReward threshold not reached, Trying to Finetune the Model with 150 Epochs. Will only save best results and will early stop after 1 non-improvement")
+        # Train model
+        history = model.fit(X_train, y_train, epochs=150, batch_size=64, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
