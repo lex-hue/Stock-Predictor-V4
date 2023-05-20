@@ -63,6 +63,8 @@ def handle_interrupt(signal, frame):
     plt.tight_layout()
     plt.show()
 
+    exit(0)
+
 # Register the signal handler
 signal.signal(signal.SIGINT, handle_interrupt)
 
