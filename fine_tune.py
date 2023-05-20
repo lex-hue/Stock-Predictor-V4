@@ -1,4 +1,5 @@
 import os
+import signal
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import sys
@@ -39,6 +40,7 @@ def create_sequences(data, timesteps):
 
 # Load model
 model = load_model('model.h5')
+model.summary()
 
 # Define reward threshold
 reward_threshold = 0.94
@@ -46,6 +48,23 @@ reward_threshold = 0.94
 # Initialize rewards
 rewards = []
 count = 0
+
+# Function to handle SIGINT signal (CTRL + C)
+def handle_interrupt(signal, frame):
+    print("\nInterrupt received. Saving the Model, Plotting Rewards and ending program...")
+    # Perform the necessary actions before ending the program
+    
+    model.save('model.h5')
+
+    # Plot results
+    fig, axs = plt.subplots(3, 1, figsize=(10,10))
+    axs[2].plot(rewards)
+    axs[2].set_title('Rewards')
+    plt.tight_layout()
+    plt.show()
+
+# Register the signal handler
+signal.signal(signal.SIGINT, handle_interrupt)
 
 while True:
     os.system('clear')
@@ -83,10 +102,10 @@ while True:
         break
     else:
         # Set up callbacks
-        checkpoint = ModelCheckpoint("model.h5", save_best_only=True, verbose=1)
+        checkpoint = ModelCheckpoint("model.h5", save_best_only=True, verbose=1, mode="min")
         earlystop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
 
         # Fine-tune model)
-        print("\nReward threshold not reached, Trying to Finetune the Model with 150 Epochs. Will only save best results and will early stop after 1 non-improvement")
+        print("\nReward threshold not reached, Trying to Finetune the Model with 150 Epochs. Will only save best results and will early stop after 5 non-improvements")
         # Train model
-        history = model.fit(X_train, y_train, epochs=150, batch_size=64, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
+        history = model.fit(X_train, y_train, epochs=150, batch_size=256, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
