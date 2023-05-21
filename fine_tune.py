@@ -47,24 +47,47 @@ reward_threshold = 0.94
 
 # Initialize rewards
 rewards = []
+mses = []
+mapes = []
 count = 0
 
 # Function to handle SIGINT signal (CTRL + C)
 def handle_interrupt(signal, frame):
-    print("\nInterrupt received. Saving the Model, Plotting Rewards and ending program...")
-    # Perform the necessary actions before ending the program
+    print("\nInterrupt received.")
+
+    # Ask the user for confirmation
+    user_input = input(f"Are you sure that you want to save the Model, Plot the Rewards and also End the Program? (yes/no): ")
+
+    if user_input.lower() == 'yes':
+        model.save('model.h5')
+
+        # Plot results
+        fig, axs = plt.subplots(3, 1, figsize=(10,10))
+        axs[0].plot(mses)
+        axs[0].set_title('MSE')
+        axs[1].plot(mapes)
+        axs[1].set_title('MAPE')
+        axs[2].plot(rewards)
+        axs[2].set_title('Rewards')
+        plt.tight_layout()
+        plt.show()
+
+        exit(0)
+
+    else:
+        # Plot results
+        fig, axs = plt.subplots(3, 1, figsize=(10,10))
+        axs[0].plot(mses)
+        axs[0].set_title('MSE')
+        axs[1].plot(mapes)
+        axs[1].set_title('MAPE')
+        axs[2].plot(rewards)
+        axs[2].set_title('Rewards')
+        plt.tight_layout()
+        plt.show()
+
+        print("Continuing the Fine-tuning Process")
     
-    model.save('model.h5')
-
-    # Plot results
-    fig, axs = plt.subplots(3, 1, figsize=(10,10))
-    axs[2].plot(rewards)
-    axs[2].set_title('Rewards')
-    plt.tight_layout()
-    plt.show()
-
-    exit(0)
-
 # Register the signal handler
 signal.signal(signal.SIGINT, handle_interrupt)
 
@@ -82,10 +105,13 @@ while True:
 
     # Append rewards
     rewards.append(1 - mape)
+    mses.append(mse)
+    mapes.append(mape)
 
     # Print current rewards
     print("Rewards:", rewards)
     print("MAPE:", mape)
+    print("MSE:", mse)
     count += 1
     print("Looped", count, "times.")
 
@@ -96,6 +122,10 @@ while True:
 
         # Plot results
         fig, axs = plt.subplots(3, 1, figsize=(10,10))
+        axs[0].plot(mses)
+        axs[0].set_title('MSE')
+        axs[1].plot(mapes)
+        axs[1].set_title('MAPE')
         axs[2].plot(rewards)
         axs[2].set_title('Rewards')
         plt.tight_layout()
