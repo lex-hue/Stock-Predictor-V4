@@ -7,11 +7,20 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout
-from sklearn.metrics import mean_absolute_percentage_error
+from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout, GRU, Conv1D, MaxPooling1D, Attention
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from sklearn.metrics import mean_absolute_percentage_error
 
 print("TensorFlow version:", tf.__version__)
+
+# Define custom Metric
+def accuracy(y_true, y_pred):
+    acc = tf.reduce_mean(tf.abs((y_true / y_pred) * 100))
+
+    if tf.greater(acc, 100):
+        acc = tf.constant(0, dtype=tf.float32)
+
+    return acc
 
 # Define reward function
 def get_reward(y_true, y_pred):
@@ -47,34 +56,41 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 
 # Build model
 model = Sequential()
-model.add(LSTM(units=512, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
+model.add(MaxPooling1D(pool_size=2))
+model.add(LSTM(units=256, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(LSTM(units=256, return_sequences=True))
+model.add(GRU(units=256, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+model.add(BatchNormalization())
+model.add(Dropout(0.2))
+model.add(Dense(units=256, input_shape=(timesteps, X_train.shape[2])))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
 model.add(LSTM(units=128, return_sequences=True))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(LSTM(units=64, return_sequences=True))
+model.add(GRU(units=256, return_sequences=True))
+model.add(BatchNormalization())
+model.add(Dropout(0.2))
+model.add(Dense(units=128))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
 model.add(LSTM(units=32))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
+
 model.add(Dense(units=1))
 
-model.summary()
-
-# Compile model
+# Compile model with MAPE loss and accuracy metric
 initial_learning_rate = 0.01
-learning_rate_multiplier = 1.3
+learning_rate_multiplier = 1.5
 new_learning_rate = initial_learning_rate * learning_rate_multiplier
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     new_learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
 )
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-model.compile(optimizer=optimizer, loss='mean_squared_error')
+model.compile(optimizer=optimizer, loss="mse", metrics=accuracy)
 
 # Function to handle SIGINT signal (CTRL + C)
 def handle_interrupt(signal, frame):
@@ -83,10 +99,17 @@ def handle_interrupt(signal, frame):
     
     # Evaluate model
     model = load_model("model.h5")
+    print("\nTest 1\n")
     y_pred_test = model.predict(X_test)
     test_reward = get_reward(y_test, y_pred_test)
 
+    # Get accuracy
+    print("\nTest 2\n")
+    _, test_accuracy = model.evaluate(X_test, y_test)
+
     print("Test reward:", test_reward)
+    print("Test accuracy:", test_accuracy)
+
     exit(0)
 
 # Register the signal handler
@@ -102,7 +125,13 @@ history = model.fit(X_train, y_train, epochs=200, batch_size=128, validation_dat
 
 # Evaluate model
 model = load_model("model.h5")
+print("\nTest 1\n")
 y_pred_test = model.predict(X_test)
 test_reward = get_reward(y_test, y_pred_test)
 
+# Get accuracy
+print("\nTest 2\n")
+_, test_accuracy = model.evaluate(X_test, y_test)
+
 print("Test reward:", test_reward)
+print("Test accuracy:", test_accuracy)
