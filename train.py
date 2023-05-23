@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout, GRU, Conv1D, MaxPooling1D, Attention
+from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout, GRU, Conv1D, MaxPooling1D, Attention, TimeDistributed
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.metrics import mean_absolute_percentage_error
 
@@ -56,33 +56,37 @@ X_test, y_test = create_sequences(test_data_norm, timesteps)
 
 # Build model
 model = Sequential()
-model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
+model.add(Conv1D(filters=128, kernel_size=5, activation='relu'))
 model.add(MaxPooling1D(pool_size=2))
-model.add(LSTM(units=256, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
+model.add(LSTM(units=400, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(GRU(units=256, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+model.add(GRU(units=400, return_sequences=True))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(Dense(units=256, input_shape=(timesteps, X_train.shape[2])))
+model.add(Dense(units=400))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(LSTM(units=128, return_sequences=True))
+model.add(TimeDistributed(Dense(units=400)))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(GRU(units=256, return_sequences=True))
+model.add(LSTM(units=200, return_sequences=True))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(Dense(units=128))
+model.add(GRU(units=200, return_sequences=True))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
-model.add(LSTM(units=32))
+model.add(TimeDistributed(Dense(units=200)))
+model.add(BatchNormalization())
+model.add(Dropout(0.2))
+model.add(LSTM(units=150))
 model.add(BatchNormalization())
 model.add(Dropout(0.2))
 
 model.add(Dense(units=1))
 
-# Compile model with MAPE loss and accuracy metric
+# Compile model with MSE loss and accuracy metric
 initial_learning_rate = 0.01
 learning_rate_multiplier = 1.5
 new_learning_rate = initial_learning_rate * learning_rate_multiplier

@@ -14,6 +14,15 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 print("TensorFlow version:", tf.__version__)
 
+# Define custom Metric
+def accuracy(y_true, y_pred):
+    acc = tf.reduce_mean(tf.abs((y_true / y_pred) * 100))
+
+    if tf.greater(acc, 100):
+        acc = tf.constant(0, dtype=tf.float32)
+
+    return acc
+
 # Load data
 data = pd.read_csv("data.csv")
 
@@ -49,6 +58,7 @@ reward_threshold = 0.94
 rewards = []
 mses = []
 mapes = []
+r2s = []
 count = 0
 
 # Function to handle SIGINT signal (CTRL + C)
@@ -62,13 +72,15 @@ def handle_interrupt(signal, frame):
         model.save('model.h5')
 
         # Plot results
-        fig, axs = plt.subplots(3, 1, figsize=(10,10))
+        fig, axs = plt.subplots(4, 1, figsize=(10, 10))
         axs[0].plot(mses)
         axs[0].set_title('MSE')
         axs[1].plot(mapes)
         axs[1].set_title('MAPE')
-        axs[2].plot(rewards)
-        axs[2].set_title('Rewards')
+        axs[2].plot(r2s)
+        axs[2].set_title('R2')
+        axs[3].plot(rewards)
+        axs[3].set_title('Rewards')
         plt.tight_layout()
         plt.show()
 
@@ -76,18 +88,20 @@ def handle_interrupt(signal, frame):
 
     else:
         # Plot results
-        fig, axs = plt.subplots(3, 1, figsize=(10,10))
+        fig, axs = plt.subplots(4, 1, figsize=(10, 10))
         axs[0].plot(mses)
         axs[0].set_title('MSE')
         axs[1].plot(mapes)
         axs[1].set_title('MAPE')
-        axs[2].plot(rewards)
-        axs[2].set_title('Rewards')
+        axs[2].plot(r2s)
+        axs[2].set_title('R2')
+        axs[3].plot(rewards)
+        axs[3].set_title('Rewards')
         plt.tight_layout()
         plt.show()
 
         print("Continuing the Fine-tuning Process")
-    
+
 # Register the signal handler
 signal.signal(signal.SIGINT, handle_interrupt)
 
@@ -102,16 +116,20 @@ while True:
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     mape = mean_absolute_percentage_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
 
     # Append rewards
-    rewards.append(1 - mape)
+    reward = r2 + (1 - mape) / 2
+    rewards.append(reward)
     mses.append(mse)
     mapes.append(mape)
+    r2s.append(r2)
 
     # Print current rewards
     print("Rewards:", rewards)
     print("MAPE:", mape)
     print("MSE:", mse)
+    print("R2:", r2)
     count += 1
     print("Looped", count, "times.")
 
@@ -121,13 +139,15 @@ while True:
         model.save('model.h5')
 
         # Plot results
-        fig, axs = plt.subplots(3, 1, figsize=(10,10))
+        fig, axs = plt.subplots(4, 1, figsize=(10, 10))
         axs[0].plot(mses)
         axs[0].set_title('MSE')
         axs[1].plot(mapes)
         axs[1].set_title('MAPE')
-        axs[2].plot(rewards)
-        axs[2].set_title('Rewards')
+        axs[2].plot(r2s)
+        axs[2].set_title('R2')
+        axs[3].plot(rewards)
+        axs[3].set_title('Rewards')
         plt.tight_layout()
         plt.show()
 
