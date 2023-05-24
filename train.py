@@ -86,15 +86,13 @@ model.add(Dropout(0.2))
 
 model.add(Dense(units=1))
 
-# Compile model with MSE loss and accuracy metric
-initial_learning_rate = 0.01
-learning_rate_multiplier = 1.5
-new_learning_rate = initial_learning_rate * learning_rate_multiplier
+# Compile model with MAPE loss and accuracy metric
+learning_rate = 0.015
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-    new_learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
+    learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
 )
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-model.compile(optimizer=optimizer, loss="mse", metrics=accuracy)
+optimizer = tf.keras.optimizers.SGD(learning_rate=lr_schedule)
+model.compile(optimizer=optimizer, loss="mae", metrics=[accuracy])
 
 # Function to handle SIGINT signal (CTRL + C)
 def handle_interrupt(signal, frame):

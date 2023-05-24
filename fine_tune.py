@@ -47,12 +47,15 @@ def create_sequences(data, timesteps):
         y.append(data[i, 0])
     return np.array(X), np.array(y)
 
+X_train, y_train = create_sequences(train_data_norm, timesteps)
+X_test, y_test = create_sequences(test_data_norm, timesteps)
+
 # Load model
 model = load_model('model.h5')
 model.summary()
 
 # Define reward threshold
-reward_threshold = 0.94
+reward_threshold = float(input("Enter the reward threshold (0 - 1, 0.9 recommended): "))
 
 # Initialize rewards
 rewards = []
@@ -111,15 +114,13 @@ while True:
     model = load_model('model.h5')
     print("Evaluating Model")
     # Evaluate model
-    X_train, y_train = create_sequences(train_data_norm, timesteps)
-    X_test, y_test = create_sequences(test_data_norm, timesteps)
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     mape = mean_absolute_percentage_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
 
     # Append rewards
-    reward = r2 + (1 - mape) / 2
+    reward = ((1 - mape) + r2) / 2
     rewards.append(reward)
     mses.append(mse)
     mapes.append(mape)
@@ -134,7 +135,7 @@ while True:
     print("Looped", count, "times.")
 
     # Check if reward threshold is reached
-    if len(rewards) >= 3 and sum(rewards[-3:]) / 3 >= reward_threshold:
+    if len(rewards) >= 1 and sum(rewards[-1:]) >= reward_threshold:
         print("Reward threshold reached!")
         model.save('model.h5')
 
