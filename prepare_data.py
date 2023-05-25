@@ -2,7 +2,7 @@ import pandas as pd
 import talib
 import matplotlib.pyplot as plt
 
-df = pd.read_csv('data/BTC-USD.csv')
+df = pd.read_csv('data/example.csv')
 
 df['SMA'] = talib.SMA(df['Close'], timeperiod=14)
 df['RSI'] = talib.RSI(df['Close'], timeperiod=14)
