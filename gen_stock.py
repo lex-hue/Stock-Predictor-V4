@@ -15,9 +15,17 @@ def generate_stock_data_csv(file_path, num_lines, data_type):
         elif data_type == 'exponential':
             close_price = 100.0 * (1.1 ** i)
         elif data_type == 'random':
-            close_price = random.uniform(80, 120)
+            if i > 0:
+                prev_close = data[i - 1][1]
+                close_price = prev_close * random.uniform(0.95, 1.05)
+            else:
+                close_price = 100.0
         elif data_type == 'trend':
-            close_price = 100.0 + i * 5 * random.uniform(0.8, 1.2)
+            if i > 0:
+                prev_close = data[i - 1][1]
+                close_price = prev_close + random.uniform(-2, 2)
+            else:
+                close_price = 100.0
         else:
             raise ValueError("Invalid data type provided.")
 
