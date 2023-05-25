@@ -80,11 +80,11 @@ To fine tune the model, execute the following:
 ```
 python fine_tune.py
 ```
-The script now prompts you to specify the reward threshold you desire for the LSTM RL model during the fine-tuning process. It is recommended to set the threshold at 0.9.
+Before starting the fine-tuning process for the LSTM RL model, the script will now ask you to specify your desired reward threshold. It is recommended to set the threshold at 0.9.
 
-It's advisable to stay hydrated with some water while waiting for the fine-tuning process to finish, as it may take some time. Once the fine-tuning is complete, attempt to run the "fine_tune.py" script until it loops only three times. If it doesnt loop 3 times, keep rerunning it until it has looped three times at least once.
+While waiting for the fine-tuning process to finish, it is advisable to stay hydrated by drinking some water, as this process may take some time. Once the fine-tuning is complete, try running the "fine_tune.py" script until it loops only once. In case it doesn't loop once initially, continue rerunning it until it completes at least one loop.
 
-After fine-tuning is complete, it is recommended to re-evaluate the model.
+After the fine-tuning process is fully complete, it is highly recommended to re-evaluate the model's performance.
 
 ---
 
