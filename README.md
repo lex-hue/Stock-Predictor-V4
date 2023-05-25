@@ -76,12 +76,11 @@ After running this command, the root mean squared error (RMSE), the MAPE and Tot
 
 ## 5. Fine Tuning the LSTM RL Model
 
-Fine tuning the LSTM RL model will take more time as it will train until it reaches a specific reward threshold. By default, the reward threshold is set to 0.97 (An MAPE average of 0.03). However, if you want to set a different reward threshold, open the fine_tune.py file and change the reward_threshold variable to your desired target accuracy.
-
 To fine tune the model, execute the following:
 ```
 python fine_tune.py
 ```
+The script now prompts you to specify the reward threshold you desire for the LSTM RL model during the fine-tuning process. It is recommended to set the threshold at 0.9.
 
 It's advisable to stay hydrated with some water while waiting for the fine-tuning process to finish, as it may take some time. Once the fine-tuning is complete, attempt to run the "fine_tune.py" script until it loops only three times. If it doesnt loop 3 times, keep rerunning it until it has looped three times at least once.
 
