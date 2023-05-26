@@ -53,7 +53,7 @@ Option 2:
 1. Use `gen_stock.py` to generate Fake Stock Data to train your model for any option you chose.
 2. Execute `prepare_data.py` by running `python prepare_data.py`.
 
-After these steps, your downloaded stock data will have indicators that make predictions more reliable.
+After these steps, your downloaded/generated stock data will have indicators that make predictions more reliable.
 
 ---
 
