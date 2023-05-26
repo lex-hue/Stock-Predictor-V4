@@ -13,15 +13,6 @@ from sklearn.metrics import mean_absolute_percentage_error
 
 print("TensorFlow version:", tf.__version__)
 
-# Define custom Metric
-def accuracy(y_true, y_pred):
-    acc = tf.reduce_mean(tf.abs((y_true / y_pred) * 100))
-
-    if tf.greater(acc, 100):
-        acc = tf.constant(0, dtype=tf.float32)
-
-    return acc
-
 # Define reward function
 def get_reward(y_true, y_pred):
     mape = mean_absolute_percentage_error(y_true, y_pred)
@@ -92,10 +83,11 @@ lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
 )
 optimizer = tf.keras.optimizers.SGD(learning_rate=lr_schedule)
-model.compile(optimizer=optimizer, loss="mae", metrics=[accuracy])
+model.compile(optimizer=optimizer, loss="mae")
 
 # Function to handle SIGINT signal (CTRL + C)
 def handle_interrupt(signal, frame):
+    model.save("model.h5")
     print("\nInterrupt received. Evaluating the Model and ending program...")
     # Perform the necessary actions before ending the program
     
@@ -124,6 +116,8 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=10)
 
 # Train model
 history = model.fit(X_train, y_train, epochs=200, batch_size=128, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
+
+model.save("model.h5")
 
 # Evaluate model
 model = load_model("model.h5")
