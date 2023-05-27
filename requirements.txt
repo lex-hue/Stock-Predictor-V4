@@ -1,6 +1,0 @@
-pandas
-ta-lib
-numpy
-scikit-learn
-tensorflow-cpu
-matplotlib
