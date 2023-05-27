@@ -87,7 +87,6 @@ model.compile(optimizer=optimizer, loss="mae")
 
 # Function to handle SIGINT signal (CTRL + C)
 def handle_interrupt(signal, frame):
-    model.save("model.h5")
     print("\nInterrupt received. Evaluating the Model and ending program...")
     # Perform the necessary actions before ending the program
     
@@ -99,10 +98,10 @@ def handle_interrupt(signal, frame):
 
     # Get accuracy
     print("\nTest 2\n")
-    _, test_accuracy = model.evaluate(X_test, y_test)
+    loss = model.evaluate(X_test, y_test)
 
     print("Test reward:", test_reward)
-    print("Test accuracy:", test_accuracy)
+    print("Test loss:", loss)
 
     exit(0)
 
@@ -117,6 +116,10 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=10)
 # Train model
 history = model.fit(X_train, y_train, epochs=200, batch_size=128, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
 
+# Get val_loss from history
+val_loss = history.history['val_loss']
+print("Validation loss:", val_loss[-1])
+
 model.save("model.h5")
 
 # Evaluate model
@@ -127,7 +130,8 @@ test_reward = get_reward(y_test, y_pred_test)
 
 # Get accuracy
 print("\nTest 2\n")
-_, test_accuracy = model.evaluate(X_test, y_test)
+loss = model.evaluate(X_test, y_test)
 
 print("Test reward:", test_reward)
-print("Test accuracy:", test_accuracy)
+print("Test loss:", loss)
+
