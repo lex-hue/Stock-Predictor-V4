@@ -30,7 +30,7 @@ def install_dependencies():
 
     def install_dependencies():
         print("Installing Python dependencies...")
-        subprocess.run(["pip", "install", "pandas", "numpy", "scikit-learn", "tensorflow-cpu", "matplotlib"], check=True)
+        subprocess.run(["pip", "install", "pandas", "numpy", "scikit-learn", "tensorflow-cpu", "matplotlib", "ta-lib"], check=True)
         print("Python dependencies installation complete")
 
     if __name__ == "__main__":
