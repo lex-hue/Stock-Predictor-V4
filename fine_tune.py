@@ -120,7 +120,7 @@ while True:
     r2 = r2_score(y_test, y_pred)
 
     # Append rewards
-    reward = ((1 - mape) + r2) / 2
+    reward = (((1 - mape) * 0.9) + (r2 * 1.1)) / 2
     rewards.append(reward)
     mses.append(mse)
     mapes.append(mape)
@@ -156,9 +156,9 @@ while True:
     else:
         # Set up callbacks
         checkpoint = ModelCheckpoint("model.h5", save_best_only=True, verbose=1, mode="min")
-        earlystop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
+        earlystop = EarlyStopping(monitor='val_loss', patience=3, verbose=1)
 
         # Fine-tune model)
-        print("\nReward threshold not reached, Trying to Finetune the Model with 150 Epochs. Will only save best results and will early stop after 5 non-improvements")
-        # Train model
-        history = model.fit(X_train, y_train, epochs=150, batch_size=256, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
+        print("\nReward threshold not reached, Trying to Finetune the Model with 50 Epochs. Will only save best results and will early stop after 3 non-improvements")
+
+        history = model.fit(X_train, y_train, epochs=50, batch_size=256, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])

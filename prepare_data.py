@@ -1,8 +1,24 @@
+import os
 import pandas as pd
 import talib
 import matplotlib.pyplot as plt
 
-df = pd.read_csv('data/example.csv')
+# List all CSV files in the "data" folder
+data_folder = "data"
+csv_files = [file for file in os.listdir(data_folder) if file.endswith('.csv')]
+
+# Print the available CSV files with numbers for selection
+print("Available CSV files:")
+for i, file in enumerate(csv_files):
+    print(f"{i + 1}. {file}")
+
+# Ask for user input to select a CSV file
+selected_file_index = int(input("Enter the number of the CSV file to preprocess: ")) - 1
+selected_file = csv_files[selected_file_index]
+selected_file_path = os.path.join(data_folder, selected_file)
+
+# Preprocess the selected CSV file
+df = pd.read_csv(selected_file_path)
 
 df['SMA'] = talib.SMA(df['Close'], timeperiod=14)
 df['RSI'] = talib.RSI(df['Close'], timeperiod=14)

@@ -41,19 +41,18 @@ deactivate # Execute this command to deactivate the virtual environment
 ---
 
 ## 2. Data Preparation
-To prepare the data for your stock prediction, follow these steps:
+To prepare the data for stock prediction, you can follow either of the following options:
 
 Option 1:
-1. Go to [Yahoo Finance](https://finance.yahoo.com/) and select a stock of your choice.
-2. Download the CSV file from the Historical Data tab and save it in the data folder. For example, you can use [Bitcoin](https://finance.yahoo.com/quote/BTC-USD?p=BTC-USD) as an example.
-3. Open `prepare_data.py` and change `df = pd.read_csv('data/example.csv')` to `df = pd.read_csv('data/<Your Downloaded CSV file>')`, where `<Your Downloaded CSV file>` is the name of the CSV file you downloaded in step 2.
-4. Execute `prepare_data.py` by running `python prepare_data.py`.
+1. Visit [Yahoo Finance](https://finance.yahoo.com/) and choose a stock of your preference.
+2. Access the Historical Data tab and download the corresponding CSV file. Save it in the designated data folder. For example, you can use [Bitcoin](https://finance.yahoo.com/quote/BTC-USD?p=BTC-USD) as an illustration (Please ensure the data covers a period of at least two years).
+3. Run the `prepare_data.py` script by executing `python prepare_data.py` and select the downloaded CSV file.
 
 Option 2:
-1. Use `gen_stock.py` to generate Fake Stock Data to train your model for any option you chose.
-2. Execute `prepare_data.py` by running `python prepare_data.py`.
+1. Utilize the `gen_stock.py` script to generate fabricated stock data for training your model, irrespective of the option you choose.
+3. Run the `prepare_data.py` script by executing `python prepare_data.py` and select the generated CSV file.
 
-After these steps, your downloaded/generated stock data will have indicators that make predictions more reliable.
+Upon completion of these steps, your downloaded/generated stock data will contain indicators that enhance the reliability of predictions.
 
 ---
 
