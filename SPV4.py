@@ -254,7 +254,7 @@ def train_model():
     model.add(Dense(units=1))
 
     # Compile model with MAPE loss and accuracy metric
-    learning_rate = 0.015
+    learning_rate = 0.0015
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
     )
@@ -509,7 +509,7 @@ def fine_tune_model():
         r2 = r2_score(y_test, y_pred)
 
         # Append rewards
-        reward = (((1 - mape) * 0.9) + (r2 * 1.1)) / 2
+        reward = ((1 - mape) + r2) / 2
         rewards.append(reward)
         mses.append(mse)
         mapes.append(mape)
