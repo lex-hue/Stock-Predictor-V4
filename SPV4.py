@@ -501,10 +501,10 @@ def fine_tune_model():
         else:
             # Set up callbacks
             checkpoint = ModelCheckpoint("model.h5", save_best_only=True, verbose=1, mode="min")
-            earlystop = EarlyStopping(monitor='val_loss', patience=3, verbose=1)
+            earlystop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
 
             # Fine-tune model)
-            print("\nReward threshold not reached, Trying to Finetune the Model with 50 Epochs. Will only save best results and will early stop after 3 non-improvements")
+            print("\nReward threshold not reached, Trying to Finetune the Model with 50 Epochs. Will only save best results and will early stop after 5 non-improvements")
 
             history = model.fit(X_train, y_train, epochs=50, batch_size=256, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
 
