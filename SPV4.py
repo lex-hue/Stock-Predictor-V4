@@ -1,5 +1,6 @@
 import argparse
 
+
 def install_dependencies():
     import os
     import subprocess
@@ -50,8 +51,18 @@ def install_dependencies():
         start_time = time.time()
         os.chdir("ta-lib")
         subprocess.run(["./configure", "--prefix=/usr"], check=True)
-        subprocess.run(["make", "-s"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["sudo", "make", "-s", "install"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ["make", "-s"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            ["sudo", "make", "-s", "install"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
         os.chdir("..")
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -60,16 +71,27 @@ def install_dependencies():
     def install_dependencies():
         print("Installing Python dependencies...")
         start_time = time.time()
-        packages = ["pandas", "numpy", "scikit-learn", "tensorflow-cpu", "matplotlib", "ta-lib"]
+        packages = [
+            "pandas",
+            "numpy",
+            "scikit-learn",
+            "tensorflow-cpu",
+            "matplotlib",
+            "ta-lib",
+        ]
         total_packages = len(packages)
         progress = 0
         for package in packages:
             progress += 1
             print(f"Installing {package}... ({progress}/{total_packages})")
-            subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", package], check=True)
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--quiet", package], check=True
+            )
         end_time = time.time()
         elapsed_time = end_time - start_time
-        print(f"Python dependencies installation complete (Time: {elapsed_time:.2f} seconds)")
+        print(
+            f"Python dependencies installation complete (Time: {elapsed_time:.2f} seconds)"
+        )
 
     if __name__ == "__main__":
         print("Welcome to the SPV4 installation!")
@@ -77,7 +99,10 @@ def install_dependencies():
 
         time.sleep(2)
 
-        download_file("https://deac-fra.dl.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz", "ta-lib-0.4.0-src.tar.gz")
+        download_file(
+            "https://deac-fra.dl.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz",
+            "ta-lib-0.4.0-src.tar.gz",
+        )
 
         print("Extraction process will begin shortly...")
         print("Please wait while the files are being extracted.")
@@ -108,7 +133,7 @@ def prepare_data():
 
     # List all CSV files in the "data" folder
     data_folder = "data"
-    csv_files = [file for file in os.listdir(data_folder) if file.endswith('.csv')]
+    csv_files = [file for file in os.listdir(data_folder) if file.endswith(".csv")]
 
     # Print the available CSV files with numbers for selection
     print("Available CSV files:")
@@ -116,25 +141,33 @@ def prepare_data():
         print(f"{i + 1}. {file}")
 
     # Ask for user input to select a CSV file
-    selected_file_index = int(input("Enter the number of the CSV file to preprocess: ")) - 1
+    selected_file_index = (
+        int(input("Enter the number of the CSV file to preprocess: ")) - 1
+    )
     selected_file = csv_files[selected_file_index]
     selected_file_path = os.path.join(data_folder, selected_file)
 
     # Preprocess the selected CSV file
     df = pd.read_csv(selected_file_path)
 
-    df['SMA'] = talib.SMA(df['Close'], timeperiod=14)
-    df['RSI'] = talib.RSI(df['Close'], timeperiod=14)
-    df['MACD'], _, _ = talib.MACD(df['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
-    df['upper_band'], df['middle_band'], df['lower_band'] = talib.BBANDS(df['Close'], timeperiod=20)
-    df['aroon_up'], df['aroon_down'] = talib.AROON(df['High'], df['Low'], timeperiod=25)
-    df['kicking'] = talib.CDLKICKINGBYLENGTH(df['Open'], df['High'], df['Low'], df['Close'])
+    df["SMA"] = talib.SMA(df["Close"], timeperiod=14)
+    df["RSI"] = talib.RSI(df["Close"], timeperiod=14)
+    df["MACD"], _, _ = talib.MACD(
+        df["Close"], fastperiod=12, slowperiod=26, signalperiod=9
+    )
+    df["upper_band"], df["middle_band"], df["lower_band"] = talib.BBANDS(
+        df["Close"], timeperiod=20
+    )
+    df["aroon_up"], df["aroon_down"] = talib.AROON(df["High"], df["Low"], timeperiod=25)
+    df["kicking"] = talib.CDLKICKINGBYLENGTH(
+        df["Open"], df["High"], df["Low"], df["Close"]
+    )
 
-    df['ATR'] = talib.ATR(df['High'], df['Low'], df['Close'], timeperiod=14)
-    df['upper_band_supertrend'] = df['High'] - (df['ATR'] * 2)
-    df['lower_band_supertrend'] = df['Low'] + (df['ATR'] * 2)
-    df['in_uptrend'] = df['Close'] > df['lower_band_supertrend']
-    df['supertrend_signal'] = df['in_uptrend'].diff().fillna(0)
+    df["ATR"] = talib.ATR(df["High"], df["Low"], df["Close"], timeperiod=14)
+    df["upper_band_supertrend"] = df["High"] - (df["ATR"] * 2)
+    df["lower_band_supertrend"] = df["Low"] + (df["ATR"] * 2)
+    df["in_uptrend"] = df["Close"] > df["lower_band_supertrend"]
+    df["supertrend_signal"] = df["in_uptrend"].diff().fillna(0)
 
     # Replace "False" with 0 and "True" with 1
     df = df.replace({False: 0, True: 1})
@@ -143,28 +176,76 @@ def prepare_data():
     df.fillna(0, inplace=True)
 
     # Concatenate the columns in the order you want
-    df2 = pd.concat([df['Date'], df['Close'], df['Adj Close'], df['Volume'], df['High'], df['Low'], df['SMA'], df['MACD'], df['upper_band'], df['middle_band'], df['lower_band'], df['supertrend_signal'], df['RSI'], df['aroon_up'], df['aroon_down'], df['kicking'], df['upper_band_supertrend'], df['lower_band_supertrend']], axis=1)
+    df2 = pd.concat(
+        [
+            df["Date"],
+            df["Close"],
+            df["Adj Close"],
+            df["Volume"],
+            df["High"],
+            df["Low"],
+            df["SMA"],
+            df["MACD"],
+            df["upper_band"],
+            df["middle_band"],
+            df["lower_band"],
+            df["supertrend_signal"],
+            df["RSI"],
+            df["aroon_up"],
+            df["aroon_down"],
+            df["kicking"],
+            df["upper_band_supertrend"],
+            df["lower_band_supertrend"],
+        ],
+        axis=1,
+    )
 
     # Save the DataFrame to a new CSV file with indicators
-    df2.to_csv('data.csv', index=False)
+    df2.to_csv("data.csv", index=False)
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
 
-    ax1.plot(df['Close'], label='Close')
-    ax1.plot(df['SMA'], label='SMA')
-    ax1.fill_between(df.index, df['upper_band'], df['lower_band'], alpha=0.2, color='gray')
-    ax1.plot(df['upper_band'], linestyle='dashed', color='gray')
-    ax1.plot(df['middle_band'], linestyle='dashed', color='gray')
-    ax1.plot(df['lower_band'], linestyle='dashed', color='gray')
-    ax1.scatter(df.index[df['supertrend_signal'] == 1], df['Close'][df['supertrend_signal'] == 1], marker='^', color='green', s=100)
-    ax1.scatter(df.index[df['supertrend_signal'] == -1], df['Close'][df['supertrend_signal'] == -1], marker='v', color='red', s=100)
+    ax1.plot(df["Close"], label="Close")
+    ax1.plot(df["SMA"], label="SMA")
+    ax1.fill_between(
+        df.index, df["upper_band"], df["lower_band"], alpha=0.2, color="gray"
+    )
+    ax1.plot(df["upper_band"], linestyle="dashed", color="gray")
+    ax1.plot(df["middle_band"], linestyle="dashed", color="gray")
+    ax1.plot(df["lower_band"], linestyle="dashed", color="gray")
+    ax1.scatter(
+        df.index[df["supertrend_signal"] == 1],
+        df["Close"][df["supertrend_signal"] == 1],
+        marker="^",
+        color="green",
+        s=100,
+    )
+    ax1.scatter(
+        df.index[df["supertrend_signal"] == -1],
+        df["Close"][df["supertrend_signal"] == -1],
+        marker="v",
+        color="red",
+        s=100,
+    )
     ax1.legend()
 
-    ax2.plot(df['RSI'], label='RSI')
-    ax2.plot(df['aroon_up'], label='Aroon Up')
-    ax2.plot(df['aroon_down'], label='Aroon Down')
-    ax2.scatter(df.index[df['kicking'] == 100], df['High'][df['kicking'] == 100], marker='^', color='green', s=100)
-    ax2.scatter(df.index[df['kicking'] == -100], df['Low'][df['kicking'] == -100], marker='v', color='red', s=100)
+    ax2.plot(df["RSI"], label="RSI")
+    ax2.plot(df["aroon_up"], label="Aroon Up")
+    ax2.plot(df["aroon_down"], label="Aroon Down")
+    ax2.scatter(
+        df.index[df["kicking"] == 100],
+        df["High"][df["kicking"] == 100],
+        marker="^",
+        color="green",
+        s=100,
+    )
+    ax2.scatter(
+        df.index[df["kicking"] == -100],
+        df["Low"][df["kicking"] == -100],
+        marker="v",
+        color="red",
+        s=100,
+    )
     ax2.legend()
 
     plt.xlim(df.index[0], df.index[-1])
@@ -176,14 +257,25 @@ def train_model():
     print("Training the SPV4 model...")
     import os
     import signal
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
     import pandas as pd
     import numpy as np
     from sklearn.preprocessing import MinMaxScaler
     import tensorflow as tf
     from tensorflow.keras.models import Sequential, load_model
-    from tensorflow.keras.layers import LSTM, Dense, BatchNormalization, Dropout, GRU, Conv1D, MaxPooling1D, Attention, TimeDistributed
+    from tensorflow.keras.layers import (
+        LSTM,
+        Dense,
+        BatchNormalization,
+        Dropout,
+        GRU,
+        Conv1D,
+        MaxPooling1D,
+        Attention,
+        TimeDistributed,
+    )
     from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
     from sklearn.metrics import mean_absolute_percentage_error
 
@@ -192,7 +284,7 @@ def train_model():
     # Define reward function
     def get_reward(y_true, y_pred):
         mape = mean_absolute_percentage_error(y_true, y_pred)
-        reward = (1 - mape)
+        reward = 1 - mape
         return reward
 
     # Load data
@@ -200,11 +292,33 @@ def train_model():
 
     # Normalize data
     scaler = MinMaxScaler()
-    data_norm = scaler.fit_transform(data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
+    data_norm = scaler.fit_transform(
+        data[
+            [
+                "Close",
+                "Adj Close",
+                "Volume",
+                "High",
+                "Low",
+                "SMA",
+                "MACD",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "supertrend_signal",
+                "RSI",
+                "aroon_up",
+                "aroon_down",
+                "kicking",
+                "upper_band_supertrend",
+                "lower_band_supertrend",
+            ]
+        ]
+    )
 
     # Split data into train and test sets
-    train_data_norm = data_norm[:int(0.8 * len(data))]
-    test_data_norm = data_norm[int(0.8 * len(data)):]
+    train_data_norm = data_norm[: int(0.8 * len(data))]
+    test_data_norm = data_norm[int(0.8 * len(data)) :]
 
     # Define time steps
     timesteps = 100
@@ -214,7 +328,7 @@ def train_model():
         X = []
         y = []
         for i in range(timesteps, len(data)):
-            X.append(data[i - timesteps:i])
+            X.append(data[i - timesteps : i])
             y.append(data[i, 0])
         return np.array(X), np.array(y)
 
@@ -223,10 +337,14 @@ def train_model():
 
     # Build model
     model = Sequential()
-    model.add(Conv1D(filters=256, kernel_size=10, activation='relu'))
+    model.add(Conv1D(filters=256, kernel_size=10, activation="relu"))
     model.add(MaxPooling1D(pool_size=2))
-    model.add(Conv1D(filters=128, kernel_size=6, activation='relu'))
-    model.add(LSTM(units=450, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+    model.add(Conv1D(filters=128, kernel_size=6, activation="relu"))
+    model.add(
+        LSTM(
+            units=450, return_sequences=True, input_shape=(timesteps, X_train.shape[2])
+        )
+    )
     model.add(BatchNormalization())
     model.add(GRU(units=450, return_sequences=True))
     model.add(BatchNormalization())
@@ -257,7 +375,7 @@ def train_model():
     def handle_interrupt(signal, frame):
         print("\nInterrupt received. Evaluating the Model and ending program...")
         # Perform the necessary actions before ending the program
-        
+
         # Evaluate model
         model = load_model("model.h5")
         print("\nTest 1\n")
@@ -278,14 +396,23 @@ def train_model():
 
     # Define callbacks
     filepath = "model.h5"
-    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10)
+    checkpoint = ModelCheckpoint(
+        filepath, monitor="val_loss", verbose=1, save_best_only=True, mode="min"
+    )
+    early_stopping = EarlyStopping(monitor="val_loss", patience=10)
 
     # Train model
-    history = model.fit(X_train, y_train, epochs=200, batch_size=128, validation_data=(X_test, y_test), callbacks=[checkpoint, early_stopping])
+    history = model.fit(
+        X_train,
+        y_train,
+        epochs=200,
+        batch_size=128,
+        validation_data=(X_test, y_test),
+        callbacks=[checkpoint, early_stopping],
+    )
 
     # Get val_loss from history
-    val_loss = history.history['val_loss']
+    val_loss = history.history["val_loss"]
     print("Validation loss:", val_loss[-1])
 
     # Evaluate model
@@ -301,10 +428,12 @@ def train_model():
     print("Test reward:", test_reward)
     print("Test loss:", loss)
 
+
 def evaluate_model():
     print("Evaluating the model...")
     import os
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
     import pandas as pd
     import numpy as np
@@ -320,13 +449,57 @@ def evaluate_model():
     data = pd.read_csv("data.csv")
 
     # Split data into train and test sets
-    train_data = data.iloc[:int(0.8*len(data))]
-    test_data = data.iloc[int(0.8*len(data)):]
+    train_data = data.iloc[: int(0.8 * len(data))]
+    test_data = data.iloc[int(0.8 * len(data)) :]
 
     # Normalize data
     scaler = MinMaxScaler()
-    train_data_norm = scaler.fit_transform(train_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
-    test_data_norm = scaler.transform(test_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
+    train_data_norm = scaler.fit_transform(
+        train_data[
+            [
+                "Close",
+                "Adj Close",
+                "Volume",
+                "High",
+                "Low",
+                "SMA",
+                "MACD",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "supertrend_signal",
+                "RSI",
+                "aroon_up",
+                "aroon_down",
+                "kicking",
+                "upper_band_supertrend",
+                "lower_band_supertrend",
+            ]
+        ]
+    )
+    test_data_norm = scaler.transform(
+        test_data[
+            [
+                "Close",
+                "Adj Close",
+                "Volume",
+                "High",
+                "Low",
+                "SMA",
+                "MACD",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "supertrend_signal",
+                "RSI",
+                "aroon_up",
+                "aroon_down",
+                "kicking",
+                "upper_band_supertrend",
+                "lower_band_supertrend",
+            ]
+        ]
+    )
 
     # Define time steps
     timesteps = 100
@@ -335,19 +508,19 @@ def evaluate_model():
         X = []
         y = []
         for i in range(timesteps, len(data)):
-            X.append(data[i-timesteps:i])
+            X.append(data[i - timesteps : i])
             y.append(data[i, 0])
         return np.array(X), np.array(y)
 
     # Load model
-    model = load_model('model.h5')
+    model = load_model("model.h5")
 
     # Evaluate model
     rmse_scores = []
     mape_scores = []
     rewards = []
     for i in range(10):
-        model = load_model('model.h5')
+        model = load_model("model.h5")
         print(f"Evaluating model {i+1}/10")
         X_test, y_test = create_sequences(test_data_norm, timesteps)
         y_pred = model.predict(X_test)
@@ -357,7 +530,7 @@ def evaluate_model():
         mape_scores.append(mape)
         if mape < 0.05:
             rewards.append(1 - mape)
-            model.save('model.h5')
+            model.save("model.h5")
         else:
             rewards.append(0.3 - mape)
 
@@ -367,21 +540,23 @@ def evaluate_model():
     print(f"Total Rewards: {sum(rewards)}")
 
     # Plot results
-    fig, axs = plt.subplots(3, 1, figsize=(10,10))
+    fig, axs = plt.subplots(3, 1, figsize=(10, 10))
     axs[0].plot(rmse_scores)
-    axs[0].set_title('RMSE')
+    axs[0].set_title("RMSE")
     axs[1].plot(mape_scores)
-    axs[1].set_title('MAPE Score')
+    axs[1].set_title("MAPE Score")
     axs[2].plot(rewards)
-    axs[2].set_title('Rewards')
+    axs[2].set_title("Rewards")
     plt.tight_layout()
     plt.show()
+
 
 def fine_tune_model():
     print("Finetuning the model...")
     import os
     import signal
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
     import sys
     import pandas as pd
@@ -389,7 +564,11 @@ def fine_tune_model():
     import tensorflow as tf
     from sklearn.preprocessing import MinMaxScaler
     from tensorflow.keras.models import load_model
-    from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_percentage_error
+    from sklearn.metrics import (
+        mean_squared_error,
+        r2_score,
+        mean_absolute_percentage_error,
+    )
     import matplotlib.pyplot as plt
     from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
@@ -408,13 +587,57 @@ def fine_tune_model():
     data = pd.read_csv("data.csv")
 
     # Split data into train and test sets
-    train_data = data.iloc[:int(0.8*len(data))]
-    test_data = data.iloc[int(0.8*len(data)):]
+    train_data = data.iloc[: int(0.8 * len(data))]
+    test_data = data.iloc[int(0.8 * len(data)) :]
 
     # Normalize data
     scaler = MinMaxScaler()
-    train_data_norm = scaler.fit_transform(train_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
-    test_data_norm = scaler.transform(test_data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
+    train_data_norm = scaler.fit_transform(
+        train_data[
+            [
+                "Close",
+                "Adj Close",
+                "Volume",
+                "High",
+                "Low",
+                "SMA",
+                "MACD",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "supertrend_signal",
+                "RSI",
+                "aroon_up",
+                "aroon_down",
+                "kicking",
+                "upper_band_supertrend",
+                "lower_band_supertrend",
+            ]
+        ]
+    )
+    test_data_norm = scaler.transform(
+        test_data[
+            [
+                "Close",
+                "Adj Close",
+                "Volume",
+                "High",
+                "Low",
+                "SMA",
+                "MACD",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "supertrend_signal",
+                "RSI",
+                "aroon_up",
+                "aroon_down",
+                "kicking",
+                "upper_band_supertrend",
+                "lower_band_supertrend",
+            ]
+        ]
+    )
 
     # Define time steps
     timesteps = 100
@@ -424,7 +647,7 @@ def fine_tune_model():
         X = []
         y = []
         for i in range(timesteps, len(data)):
-            X.append(data[i-timesteps:i])
+            X.append(data[i - timesteps : i])
             y.append(data[i, 0])
         return np.array(X), np.array(y)
 
@@ -432,11 +655,13 @@ def fine_tune_model():
     X_test, y_test = create_sequences(test_data_norm, timesteps)
 
     # Load model
-    model = load_model('model.h5')
+    model = load_model("model.h5")
     model.summary()
 
     # Define reward threshold
-    reward_threshold = float(input("Enter the reward threshold (0 - 1, 0.9 recommended): "))
+    reward_threshold = float(
+        input("Enter the reward threshold (0 - 1, 0.9 recommended): ")
+    )
 
     # Initialize rewards
     rewards = []
@@ -450,21 +675,23 @@ def fine_tune_model():
         print("\nInterrupt received.")
 
         # Ask the user for confirmation
-        user_input = input(f"Are you sure that you want to save the Model, Plot the Rewards and also End the Program? (yes/no): ")
+        user_input = input(
+            f"Are you sure that you want to save the Model, Plot the Rewards and also End the Program? (yes/no): "
+        )
 
-        if user_input.lower() == 'yes':
-            model.save('model.h5')
+        if user_input.lower() == "yes":
+            model.save("model.h5")
 
             # Plot results
             fig, axs = plt.subplots(4, 1, figsize=(10, 10))
             axs[0].plot(mses)
-            axs[0].set_title('MSE')
+            axs[0].set_title("MSE")
             axs[1].plot(mapes)
-            axs[1].set_title('MAPE')
+            axs[1].set_title("MAPE")
             axs[2].plot(r2s)
-            axs[2].set_title('R2')
+            axs[2].set_title("R2")
             axs[3].plot(rewards)
-            axs[3].set_title('Rewards')
+            axs[3].set_title("Rewards")
             plt.tight_layout()
             plt.show()
 
@@ -474,13 +701,13 @@ def fine_tune_model():
             # Plot results
             fig, axs = plt.subplots(4, 1, figsize=(10, 10))
             axs[0].plot(mses)
-            axs[0].set_title('MSE')
+            axs[0].set_title("MSE")
             axs[1].plot(mapes)
-            axs[1].set_title('MAPE')
+            axs[1].set_title("MAPE")
             axs[2].plot(r2s)
-            axs[2].set_title('R2')
+            axs[2].set_title("R2")
             axs[3].plot(rewards)
-            axs[3].set_title('Rewards')
+            axs[3].set_title("Rewards")
             plt.tight_layout()
             plt.show()
 
@@ -491,7 +718,7 @@ def fine_tune_model():
 
     while True:
         # Load model
-        model = load_model('model.h5')
+        model = load_model("model.h5")
         print("\nEvaluating Model")
         # Evaluate model
         y_pred = model.predict(X_test)
@@ -517,37 +744,49 @@ def fine_tune_model():
         # Check if reward threshold is reached
         if len(rewards) >= 1 and sum(rewards[-1:]) >= reward_threshold:
             print("Reward threshold reached!")
-            model.save('model.h5')
+            model.save("model.h5")
 
             # Plot results
             fig, axs = plt.subplots(4, 1, figsize=(10, 10))
             axs[0].plot(mses)
-            axs[0].set_title('MSE')
+            axs[0].set_title("MSE")
             axs[1].plot(mapes)
-            axs[1].set_title('MAPE')
+            axs[1].set_title("MAPE")
             axs[2].plot(r2s)
-            axs[2].set_title('R2')
+            axs[2].set_title("R2")
             axs[3].plot(rewards)
-            axs[3].set_title('Rewards')
+            axs[3].set_title("Rewards")
             plt.tight_layout()
             plt.show()
 
             break
         else:
             # Set up callbacks
-            checkpoint = ModelCheckpoint("model.h5", save_best_only=True, verbose=1, mode="min")
-            earlystop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
+            checkpoint = ModelCheckpoint(
+                "model.h5", save_best_only=True, verbose=1, mode="min"
+            )
+            earlystop = EarlyStopping(monitor="val_loss", patience=5, verbose=1)
 
             # Fine-tune model)
-            print("\nReward threshold not reached, Trying to Finetune the Model with 50 Epochs. Will only save best results and will early stop after 5 non-improvements")
+            print(
+                "\nReward threshold not reached, Trying to Finetune the Model with 50 Epochs. Will only save best results and will early stop after 5 non-improvements"
+            )
 
-            history = model.fit(X_test, y_test, epochs=50, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
+            history = model.fit(
+                X_test,
+                y_test,
+                epochs=50,
+                batch_size=32,
+                validation_data=(X_test, y_test),
+                callbacks=[checkpoint, earlystop],
+            )
 
 
 def predict_future_data():
     print("Utilizing the model for predicting future data (30 days)...")
     import os
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
     import pandas as pd
     import numpy as np
@@ -560,7 +799,29 @@ def predict_future_data():
 
     # Normalize data
     scaler = MinMaxScaler()
-    data_norm = scaler.fit_transform(data[['Close', 'Adj Close', 'Volume', 'High', 'Low', 'SMA', 'MACD', 'upper_band', 'middle_band', 'lower_band', 'supertrend_signal', 'RSI', 'aroon_up', 'aroon_down', 'kicking', 'upper_band_supertrend', 'lower_band_supertrend']])
+    data_norm = scaler.fit_transform(
+        data[
+            [
+                "Close",
+                "Adj Close",
+                "Volume",
+                "High",
+                "Low",
+                "SMA",
+                "MACD",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "supertrend_signal",
+                "RSI",
+                "aroon_up",
+                "aroon_down",
+                "kicking",
+                "upper_band_supertrend",
+                "lower_band_supertrend",
+            ]
+        ]
+    )
 
     # Define time steps
     timesteps = 100
@@ -569,42 +830,55 @@ def predict_future_data():
     def create_sequences(data, timesteps):
         X = []
         for i in range(timesteps, len(data)):
-            X.append(data[i-timesteps:i])
+            X.append(data[i - timesteps : i])
         return np.array(X)
 
     X_data = create_sequences(data_norm, timesteps)
 
     # Load model
-    model = load_model('model.h5')
+    model = load_model("model.h5")
     model.summary()
 
     num_predictions = 30
 
     # Make predictions for next num_predictions days
-    X_pred = X_data[-num_predictions:].reshape((num_predictions, timesteps, X_data.shape[2]))
+    X_pred = X_data[-num_predictions:].reshape(
+        (num_predictions, timesteps, X_data.shape[2])
+    )
     y_pred = model.predict(X_pred)[:, 0]
 
     # Inverse transform predictions
-    y_pred = scaler.inverse_transform(np.hstack([np.zeros((len(y_pred), data_norm.shape[1]-1)), np.array(y_pred).reshape(-1, 1)]))[:, -1]
+    y_pred = scaler.inverse_transform(
+        np.hstack(
+            [
+                np.zeros((len(y_pred), data_norm.shape[1] - 1)),
+                np.array(y_pred).reshape(-1, 1),
+            ]
+        )
+    )[:, -1]
 
     # Generate date index for predictions
-    last_date = data['Date'].iloc[-1]
-    index = pd.date_range(last_date, periods=num_predictions, freq='D', tz='UTC').tz_localize(None)
+    last_date = data["Date"].iloc[-1]
+    index = pd.date_range(
+        last_date, periods=num_predictions, freq="D", tz="UTC"
+    ).tz_localize(None)
 
     # Calculate % change
     y_pred_pct_change = (y_pred - y_pred[0]) / y_pred[0] * 100
 
     # Save predictions and % change in a CSV file
-    predictions = pd.DataFrame({'Date': index, 'Predicted Close': y_pred, '% Change': y_pred_pct_change})
-    predictions.to_csv('predictions.csv', index=False)
+    predictions = pd.DataFrame(
+        {"Date": index, "Predicted Close": y_pred, "% Change": y_pred_pct_change}
+    )
+    predictions.to_csv("predictions.csv", index=False)
 
     print(predictions)
 
     # Find the rows with the lowest and highest predicted close and the highest and lowest % change
-    min_close_row = predictions.iloc[predictions['Predicted Close'].idxmin()]
-    max_close_row = predictions.iloc[predictions['Predicted Close'].idxmax()]
-    max_pct_change_row = predictions.iloc[predictions['% Change'].idxmax()]
-    min_pct_change_row = predictions.iloc[predictions['% Change'].idxmin()]
+    min_close_row = predictions.iloc[predictions["Predicted Close"].idxmin()]
+    max_close_row = predictions.iloc[predictions["Predicted Close"].idxmax()]
+    max_pct_change_row = predictions.iloc[predictions["% Change"].idxmax()]
+    min_pct_change_row = predictions.iloc[predictions["% Change"].idxmin()]
 
     # Print the rows with the lowest and highest predicted close and the highest and lowest % change
     print(f"\n\nHighest predicted close:\n{max_close_row}\n")
@@ -613,21 +887,50 @@ def predict_future_data():
     print(f"Lowest % change:\n{min_pct_change_row}")
 
     # Plot historical data and predictions
-    plt.plot(data['Close'].values, label='Actual Data')
-    plt.plot(np.arange(len(data), len(data)+num_predictions), y_pred, label='Predicted Data')
+    plt.plot(data["Close"].values, label="Actual Data")
+    plt.plot(
+        np.arange(len(data), len(data) + num_predictions),
+        y_pred,
+        label="Predicted Data",
+    )
 
     # Add red and green arrows for highest and lowest predicted close respectively, and highest and lowest percentage change
-    plt.annotate('↓', xy=(min_close_row.name - len(data), min_close_row['Predicted Close']), color='red', fontsize=16, arrowprops=dict(facecolor='red', shrink=0.05))
-    plt.annotate('↑', xy=(max_close_row.name - len(data), max_close_row['Predicted Close']), color='green', fontsize=16, arrowprops=dict(facecolor='green', shrink=0.05))
-    plt.annotate('↑', xy=(max_pct_change_row.name - len(data), y_pred.max()), color='green', fontsize=16, arrowprops=dict(facecolor='green', shrink=0.05))
-    plt.annotate('↓', xy=(min_pct_change_row.name - len(data), y_pred.min()), color='red', fontsize=16, arrowprops=dict(facecolor='red', shrink=0.05))
+    plt.annotate(
+        "↓",
+        xy=(min_close_row.name - len(data), min_close_row["Predicted Close"]),
+        color="red",
+        fontsize=16,
+        arrowprops=dict(facecolor="red", shrink=0.05),
+    )
+    plt.annotate(
+        "↑",
+        xy=(max_close_row.name - len(data), max_close_row["Predicted Close"]),
+        color="green",
+        fontsize=16,
+        arrowprops=dict(facecolor="green", shrink=0.05),
+    )
+    plt.annotate(
+        "↑",
+        xy=(max_pct_change_row.name - len(data), y_pred.max()),
+        color="green",
+        fontsize=16,
+        arrowprops=dict(facecolor="green", shrink=0.05),
+    )
+    plt.annotate(
+        "↓",
+        xy=(min_pct_change_row.name - len(data), y_pred.min()),
+        color="red",
+        fontsize=16,
+        arrowprops=dict(facecolor="red", shrink=0.05),
+    )
 
     # Add legend and title
     plt.legend()
-    plt.title('Predicted Close Prices')
+    plt.title("Predicted Close Prices")
 
     # Show plot
     plt.show()
+
 
 def compare_predictions():
     print("Comparing the predictions with the actual data...")
@@ -648,7 +951,11 @@ def compare_predictions():
     selected_file = None
     while selected_file is None:
         try:
-            file_number = int(input("Enter the number corresponding to the CSV file you want to select: "))
+            file_number = int(
+                input(
+                    "Enter the number corresponding to the CSV file you want to select: "
+                )
+            )
             if file_number < 1 or file_number > len(csv_files):
                 raise ValueError()
             selected_file = csv_files[file_number - 1]
@@ -660,35 +967,40 @@ def compare_predictions():
     actual_data = pd.read_csv(os.path.join(data_folder, selected_file))
 
     # Rename columns for clarity
-    predicted_data = predicted_data.rename(columns={'Predicted Close': 'Close'})
-    actual_data = actual_data.rename(columns={'Close': 'Actual Close'})
+    predicted_data = predicted_data.rename(columns={"Predicted Close": "Close"})
+    actual_data = actual_data.rename(columns={"Close": "Actual Close"})
 
     # Join predicted and actual data on the date column
-    combined_data = pd.merge(predicted_data, actual_data, on='Date')
+    combined_data = pd.merge(predicted_data, actual_data, on="Date")
 
     # Calculate the absolute percentage error between the predicted and actual values
-    combined_data['Absolute % Error'] = abs(combined_data['Close'] - combined_data['Actual Close']) / combined_data['Actual Close'] * 100
+    combined_data["Absolute % Error"] = (
+        abs(combined_data["Close"] - combined_data["Actual Close"])
+        / combined_data["Actual Close"]
+        * 100
+    )
 
     # Calculate the mean absolute percentage error and print it
-    mape = combined_data['Absolute % Error'].mean()
+    mape = combined_data["Absolute % Error"].mean()
     print(f"Mean Absolute Percentage Error: {mape:.2f}%")
 
     # Find the row with the highest and lowest absolute percentage error and print them
-    min_error_row = combined_data.iloc[combined_data['Absolute % Error'].idxmin()]
-    max_error_row = combined_data.iloc[combined_data['Absolute % Error'].idxmax()]
+    min_error_row = combined_data.iloc[combined_data["Absolute % Error"].idxmin()]
+    max_error_row = combined_data.iloc[combined_data["Absolute % Error"].idxmax()]
     print(f"\nMost Accurate Prediction:\n{min_error_row}\n")
     print(f"Least Accurate Prediction:\n{max_error_row}\n")
 
     # Plot the predicted and actual close prices
-    plt.plot(combined_data['Date'], combined_data['Close'], label='Predicted Close')
-    plt.plot(combined_data['Date'], combined_data['Actual Close'], label='Actual Close')
+    plt.plot(combined_data["Date"], combined_data["Close"], label="Predicted Close")
+    plt.plot(combined_data["Date"], combined_data["Actual Close"], label="Actual Close")
 
     # Add title and legend
-    plt.title('Predicted vs Actual Close Prices')
+    plt.title("Predicted vs Actual Close Prices")
     plt.legend()
 
     # Show plot
     plt.show()
+
 
 def gen_stock():
     print("Generating Stock Data...")
@@ -698,23 +1010,23 @@ def gen_stock():
 
     def generate_stock_data_csv(file_path, num_lines, data_type):
         # Define the column names
-        columns = ['Date', 'Close', 'Adj Close', 'Volume', 'High', 'Low', 'Open']
+        columns = ["Date", "Close", "Adj Close", "Volume", "High", "Low", "Open"]
 
         # Generate stock data based on the selected data type
         data = []
         start_date = datetime.datetime(2022, 1, 1)
         for i in range(num_lines):
-            if data_type == 'linear':
+            if data_type == "linear":
                 close_price = 100.0 + i * 10
-            elif data_type == 'exponential':
-                close_price = 100.0 * (1.1 ** i)
-            elif data_type == 'random':
+            elif data_type == "exponential":
+                close_price = 100.0 * (1.1**i)
+            elif data_type == "random":
                 if i > 0:
                     prev_close = data[i - 1][1]
                     close_price = prev_close * random.uniform(0.95, 1.05)
                 else:
                     close_price = 100.0
-            elif data_type == 'trend':
+            elif data_type == "trend":
                 if i > 0:
                     prev_close = data[i - 1][1]
                     close_price = prev_close + random.uniform(-2, 2)
@@ -730,16 +1042,25 @@ def gen_stock():
             low = close_price * random.uniform(0.95, 0.99)
             open_price = close_price * random.uniform(0.98, 1.02)
 
-            data.append([date.strftime('%Y-%m-%d'), close_price, adj_close, volume, high, low, open_price])
+            data.append(
+                [
+                    date.strftime("%Y-%m-%d"),
+                    close_price,
+                    adj_close,
+                    volume,
+                    high,
+                    low,
+                    open_price,
+                ]
+            )
 
         # Save the generated data to a CSV file
-        with open(file_path, 'w', newline='') as file:
+        with open(file_path, "w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(columns)
             writer.writerows(data)
 
         print(f"Stock data CSV file '{file_path}' generated successfully.")
-
 
     # Prompt the user for options
     num_lines = int(input("Enter the number of lines: "))
@@ -758,17 +1079,38 @@ def do_all_actions():
     evaluate_model()
     predict_future_data()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SPV4 Script")
-    parser.add_argument("--install", action="store_true", help="Install all dependencies for SPV4")
-    parser.add_argument("--generate_stock", action="store_true", help="Generate Stock Data")
-    parser.add_argument("--prepare_data", action="store_true", help="Preprocess and Prepare the CSV Data")
+    parser.add_argument(
+        "--install", action="store_true", help="Install all dependencies for SPV4"
+    )
+    parser.add_argument(
+        "--generate_stock", action="store_true", help="Generate Stock Data"
+    )
+    parser.add_argument(
+        "--prepare_data",
+        action="store_true",
+        help="Preprocess and Prepare the CSV Data",
+    )
     parser.add_argument("--train", action="store_true", help="Train the SPV4 Model")
     parser.add_argument("--eval", action="store_true", help="Evaluate the Model")
     parser.add_argument("--fine_tune", action="store_true", help="Finetune the Model")
-    parser.add_argument("--predict", action="store_true", help="Utilize the Model for Predicting Future Data (30 Days)")
-    parser.add_argument("--compare", action="store_true", help="Compare the Predictions with the Actual Data")
-    parser.add_argument("--do-all", action="store_true", help="Do all actions from above (No Install & Generating Stock Data)")
+    parser.add_argument(
+        "--predict",
+        action="store_true",
+        help="Utilize the Model for Predicting Future Data (30 Days)",
+    )
+    parser.add_argument(
+        "--compare",
+        action="store_true",
+        help="Compare the Predictions with the Actual Data",
+    )
+    parser.add_argument(
+        "--do-all",
+        action="store_true",
+        help="Do all actions from above (No Install & Generating Stock Data)",
+    )
 
     args = parser.parse_args()
 
