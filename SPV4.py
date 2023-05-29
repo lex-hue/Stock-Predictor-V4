@@ -228,33 +228,25 @@ def train_model():
     model.add(Conv1D(filters=128, kernel_size=6, activation='relu'))
     model.add(LSTM(units=450, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
     model.add(GRU(units=450, return_sequences=True))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
     model.add(Dense(units=450))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
     model.add(TimeDistributed(Dense(units=450)))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
     model.add(LSTM(units=250, return_sequences=True))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
     model.add(GRU(units=250, return_sequences=True))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
     model.add(TimeDistributed(Dense(units=250)))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
     model.add(LSTM(units=200))
     model.add(BatchNormalization())
-    model.add(Dropout(0.2))
 
     model.add(Dense(units=1))
 
     # Compile model with MAPE loss and accuracy metric
-    learning_rate = 0.0015
+    learning_rate = 0.015
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
     )
@@ -498,10 +490,9 @@ def fine_tune_model():
     signal.signal(signal.SIGINT, handle_interrupt)
 
     while True:
-        os.system('clear')
         # Load model
         model = load_model('model.h5')
-        print("Evaluating Model")
+        print("\nEvaluating Model")
         # Evaluate model
         y_pred = model.predict(X_test)
         mse = mean_squared_error(y_test, y_pred)
@@ -550,7 +541,7 @@ def fine_tune_model():
             # Fine-tune model)
             print("\nReward threshold not reached, Trying to Finetune the Model with 50 Epochs. Will only save best results and will early stop after 5 non-improvements")
 
-            history = model.fit(X_train, y_train, epochs=50, batch_size=256, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
+            history = model.fit(X_test, y_test, epochs=50, batch_size=32, validation_data=(X_test, y_test), callbacks=[checkpoint, earlystop])
 
 
 def predict_future_data():
