@@ -256,7 +256,7 @@ def prepare_data():
 def train_model():
     print("Training the SPV4 model...")
     import os
-    import signal
+    import sys
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
@@ -269,22 +269,21 @@ def train_model():
         LSTM,
         Dense,
         BatchNormalization,
-        Dropout,
         GRU,
         Conv1D,
         MaxPooling1D,
-        Attention,
         TimeDistributed,
     )
     from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-    from sklearn.metrics import mean_absolute_percentage_error
+    from sklearn.metrics import mean_absolute_percentage_error, r2_score
 
     print("TensorFlow version:", tf.__version__)
 
     # Define reward function
     def get_reward(y_true, y_pred):
         mape = mean_absolute_percentage_error(y_true, y_pred)
-        reward = 1 - mape
+        r2 = r2_score(y_true, y_pred)
+        reward = ((1 - mape) + r2) / 2
         return reward
 
     # Load data
@@ -342,15 +341,15 @@ def train_model():
     model.add(Conv1D(filters=128, kernel_size=6, activation="relu"))
     model.add(
         LSTM(
-            units=450, return_sequences=True, input_shape=(timesteps, X_train.shape[2])
+            units=500, return_sequences=True, input_shape=(timesteps, X_train.shape[2])
         )
     )
     model.add(BatchNormalization())
-    model.add(GRU(units=450, return_sequences=True))
+    model.add(GRU(units=500, return_sequences=True))
     model.add(BatchNormalization())
-    model.add(Dense(units=450))
+    model.add(Dense(units=500))
     model.add(BatchNormalization())
-    model.add(TimeDistributed(Dense(units=450)))
+    model.add(TimeDistributed(Dense(units=500)))
     model.add(BatchNormalization())
     model.add(LSTM(units=250, return_sequences=True))
     model.add(BatchNormalization())
@@ -367,26 +366,42 @@ def train_model():
     model.compile(optimizer=optimizer, loss="mse")
 
     # Define the RL training loop
-    epochs = 200
+    epochs = 20
     batch_size = 128
     best_reward = None
     best_model_path = "model.h5"
 
     for epoch in range(epochs):
-        print("Epoch", epoch+1, "/", epochs)
+        if epoch == 0:
+            0  # So that it doesn't error
+        else:
+            model = load_model("model.h5")
+        print("\nEpoch", epoch + 1, "/", epochs)
         # Train the model for one epoch
-        history = model.fit(X_train, y_train, batch_size=batch_size, epochs=1, verbose=1)
+        for i in range(0, len(X_train), batch_size):
+            if i == 0:
+                0  # So that it doesn't error
+            else:
+                sys.stdout.write('\033[F\033[K')
+            print("Batch", i, "/", len(X_train))
+            batch_X = X_train[i:i + batch_size]
+            batch_y = y_train[i:i + batch_size]
+            history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=1)
+            sys.stdout.write('\033[F\033[K')
 
         # Evaluate the model on the test set
+        print("\nEvaluating the Model\n")
         y_pred_test = model.predict(X_test)
+        sys.stdout.write('\033[F\033[K')
         test_reward = get_reward(y_test, y_pred_test)
         test_loss = model.evaluate(X_test, y_test, verbose=0)
+        sys.stdout.write('\033[F\033[K')
 
         print("Test reward:", test_reward)
         print("Test loss:", test_loss)
 
         # Save the model if it achieves higher reward
-        if epoch == 0 or test_reward > best_reward:
+        if epoch == 0 or test_reward >= best_reward:
             model.save(best_model_path)
             best_reward = test_reward
             print("Model saved!")
@@ -401,7 +416,6 @@ def train_model():
 
     print("Final test reward:", test_reward)
     print("Final test loss:", test_loss)
-
 
 def evaluate_model():
     print("Evaluating the model...")
