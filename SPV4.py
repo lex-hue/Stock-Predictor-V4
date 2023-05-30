@@ -335,7 +335,7 @@ def train_model():
     X_train, y_train = create_sequences(train_data_norm, timesteps)
     X_test, y_test = create_sequences(test_data_norm, timesteps)
 
-    # Build model
+    # Define the Deep RL model
     model = Sequential()
     model.add(Conv1D(filters=256, kernel_size=10, activation="relu"))
     model.add(MaxPooling1D(pool_size=2))
@@ -360,73 +360,47 @@ def train_model():
     model.add(BatchNormalization())
     model.add(LSTM(units=200))
     model.add(BatchNormalization())
-
     model.add(Dense(units=1))
 
-    # Compile model with MAPE loss and accuracy metric
-    learning_rate = 0.015
-    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        learning_rate, decay_steps=10000, decay_rate=0.9, staircase=True
-    )
-    optimizer = tf.keras.optimizers.SGD(learning_rate=lr_schedule)
-    model.compile(optimizer=optimizer, loss="mae")
+    # Define the RL optimizer and compile the model
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    model.compile(optimizer=optimizer, loss="mse")
 
-    # Function to handle SIGINT signal (CTRL + C)
-    def handle_interrupt(signal, frame):
-        print("\nInterrupt received. Evaluating the Model and ending program...")
-        # Perform the necessary actions before ending the program
+    # Define the RL training loop
+    epochs = 200
+    batch_size = 128
+    best_reward = None
+    best_model_path = "model.h5"
 
-        # Evaluate model
-        model = load_model("model.h5")
-        print("\nTest 1\n")
+    for epoch in range(epochs):
+        print("Epoch", epoch+1, "/", epochs)
+        # Train the model for one epoch
+        history = model.fit(X_train, y_train, batch_size=batch_size, epochs=1, verbose=1)
+
+        # Evaluate the model on the test set
         y_pred_test = model.predict(X_test)
         test_reward = get_reward(y_test, y_pred_test)
-
-        # Get accuracy
-        print("\nTest 2\n")
-        loss = model.evaluate(X_test, y_test)
+        test_loss = model.evaluate(X_test, y_test, verbose=0)
 
         print("Test reward:", test_reward)
-        print("Test loss:", loss)
+        print("Test loss:", test_loss)
 
-        exit(0)
+        # Save the model if it achieves higher reward
+        if epoch == 0 or test_reward > best_reward:
+            model.save(best_model_path)
+            best_reward = test_reward
+            print("Model saved!")
 
-    # Register the signal handler
-    signal.signal(signal.SIGINT, handle_interrupt)
+    print("Training completed.")
 
-    # Define callbacks
-    filepath = "model.h5"
-    checkpoint = ModelCheckpoint(
-        filepath, monitor="val_loss", verbose=1, save_best_only=True, mode="min"
-    )
-    early_stopping = EarlyStopping(monitor="val_loss", patience=10)
-
-    # Train model
-    history = model.fit(
-        X_train,
-        y_train,
-        epochs=200,
-        batch_size=128,
-        validation_data=(X_test, y_test),
-        callbacks=[checkpoint, early_stopping],
-    )
-
-    # Get val_loss from history
-    val_loss = history.history["val_loss"]
-    print("Validation loss:", val_loss[-1])
-
-    # Evaluate model
-    model = load_model("model.h5")
-    print("\nTest 1\n")
+    # Load the best model and evaluate it
+    model = load_model(best_model_path)
     y_pred_test = model.predict(X_test)
     test_reward = get_reward(y_test, y_pred_test)
+    test_loss = model.evaluate(X_test, y_test)
 
-    # Get accuracy
-    print("\nTest 2\n")
-    loss = model.evaluate(X_test, y_test)
-
-    print("Test reward:", test_reward)
-    print("Test loss:", loss)
+    print("Final test reward:", test_reward)
+    print("Final test loss:", test_loss)
 
 
 def evaluate_model():
