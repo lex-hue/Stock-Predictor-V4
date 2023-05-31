@@ -335,76 +335,138 @@ def train_model():
     X_test, y_test = create_sequences(test_data_norm, timesteps)
 
     # Define the Deep RL model
-    model = Sequential()
-    model.add(Conv1D(filters=256, kernel_size=10, activation="relu"))
-    model.add(MaxPooling1D(pool_size=2))
-    model.add(Conv1D(filters=128, kernel_size=6, activation="relu"))
-    model.add(
-        LSTM(
-            units=500, return_sequences=True, input_shape=(timesteps, X_train.shape[2])
-        )
-    )
-    model.add(BatchNormalization())
-    model.add(GRU(units=500, return_sequences=True))
-    model.add(BatchNormalization())
-    model.add(Dense(units=500))
-    model.add(BatchNormalization())
-    model.add(TimeDistributed(Dense(units=500)))
-    model.add(BatchNormalization())
-    model.add(LSTM(units=250, return_sequences=True))
-    model.add(BatchNormalization())
-    model.add(GRU(units=250, return_sequences=True))
-    model.add(BatchNormalization())
-    model.add(TimeDistributed(Dense(units=250)))
-    model.add(BatchNormalization())
-    model.add(LSTM(units=200))
-    model.add(BatchNormalization())
-    model.add(Dense(units=1))
+    def create_model(units, filters, kernel_size, learning_rate):
+        model = Sequential()
+        model.add(Conv1D(filters=filters, kernel_size=kernel_size, activation="relu"))
+        model.add(MaxPooling1D(pool_size=2))
+        model.add(Conv1D(filters=filters // 2, kernel_size=kernel_size // 2, activation="relu"))
+        model.add(LSTM(units=units, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+        model.add(BatchNormalization())
+        model.add(GRU(units=units, return_sequences=True))
+        model.add(BatchNormalization())
+        model.add(Dense(units=units))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Dense(units=units)))
+        model.add(BatchNormalization())
+        model.add(LSTM(units=units // 2, return_sequences=True))
+        model.add(BatchNormalization())
+        model.add(GRU(units=units // 2, return_sequences=True))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Dense(units=units // 2)))
+        model.add(BatchNormalization())
+        model.add(LSTM(units=units // 4))
+        model.add(BatchNormalization())
+        model.add(Dense(units=1))
 
-    # Define the RL optimizer and compile the model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    model.compile(optimizer=optimizer, loss="mse")
+        # Define the RL optimizer and compile the model
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        model.compile(optimizer=optimizer, loss="mse")
 
-    # Define the RL training loop
+        return model
+
+    # Define grid search parameters
+    units_range = range(50, 801, 50)
+    filters_range = range(50, 801, 50)
+    kernel_size_range = range(1, 16)
+    learning_rate_range = [0.0001, 0.001, 0.01, 0.015]
+
+    # Define RL training loop
     epochs = 20
     batch_size = 128
     best_reward = None
     best_model_path = "model.h5"
+    min_reward_threshold = float(input("Enter the minimum reward threshold (e.g., 0.7): "))
 
-    for epoch in range(epochs):
-        if epoch == 0:
-            0  # So that it doesn't error
-        else:
-            model = load_model("model.h5")
-        print("\nEpoch", epoch + 1, "/", epochs)
-        # Train the model for one epoch
-        for i in range(0, len(X_train), batch_size):
-            if i == 0:
-                0  # So that it doesn't error
+    num_loops_without_improvement = 0
+    max_loops_without_improvement = 10
+
+    while True:
+        if num_loops_without_improvement >= max_loops_without_improvement:
+            continue_training = input("The model couldn't find any better architecture. Do you want to continue training? (y/n): ")
+            if continue_training.lower() != 'y':
+                break
+
+        print("\nStarting RL training loop...")
+        for epoch in range(epochs):
+            print("\nEpoch", epoch + 1, "/", epochs)
+
+            if epoch == 0:
+                units = 50
+                filters = 50
+                kernel_size = 1
+                learning_rate = 0.0001
             else:
+                units = best_params['units']
+                filters = best_params['filters']
+                kernel_size = best_params['kernel_size']
+                learning_rate = best_params['learning_rate']
+
+            model = create_model(units, filters, kernel_size, learning_rate)
+
+            # Train the model for one epoch
+            for i in range(0, len(X_train), batch_size):
                 sys.stdout.write('\033[F\033[K')
-            print("Batch", i, "/", len(X_train))
-            batch_X = X_train[i:i + batch_size]
-            batch_y = y_train[i:i + batch_size]
-            history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=1)
+                print("Batch", i, "/", len(X_train))
+                batch_X = X_train[i:i + batch_size]
+                batch_y = y_train[i:i + batch_size]
+                history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=1)
+                sys.stdout.write('\033[F\033[K')
+
+            # Evaluate the model on the test set
+            print("\nEvaluating the Model\n")
+            y_pred_test = model.predict(X_test)
+            sys.stdout.write('\033[F\033[K')
+            test_reward = get_reward(y_test, y_pred_test)
+            test_loss = model.evaluate(X_test, y_test, verbose=0)
             sys.stdout.write('\033[F\033[K')
 
-        # Evaluate the model on the test set
-        print("\nEvaluating the Model\n")
-        y_pred_test = model.predict(X_test)
-        sys.stdout.write('\033[F\033[K')
-        test_reward = get_reward(y_test, y_pred_test)
-        test_loss = model.evaluate(X_test, y_test, verbose=0)
-        sys.stdout.write('\033[F\033[K')
+            print("Test reward:", test_reward)
+            print("Test loss:", test_loss)
 
-        print("Test reward:", test_reward)
-        print("Test loss:", test_loss)
+            # Save the model if it achieves higher reward
+            if epoch == 0 or test_reward >= best_reward:
+                model.save(best_model_path)
+                best_reward = test_reward
+                best_params = {'units': units, 'filters': filters, 'kernel_size': kernel_size, 'learning_rate': learning_rate}
+                num_loops_without_improvement = 0
+                print("Model saved!")
 
-        # Save the model if it achieves higher reward
-        if epoch == 0 or test_reward >= best_reward:
-            model.save(best_model_path)
-            best_reward = test_reward
-            print("Model saved!")
+            # Check if the minimum reward threshold is reached
+            if best_reward >= min_reward_threshold:
+                break
+
+            # Grid search if the model doesn't improve after 3 evaluations
+            if epoch >= 2:
+                num_loops_without_improvement += 1
+
+                if num_loops_without_improvement >= 3:
+                    print("\nPerforming grid search...")
+                    best_params = {'units': units, 'filters': filters, 'kernel_size': kernel_size, 'learning_rate': learning_rate}
+                    best_reward = None
+
+                    for units in units_range:
+                        for filters in filters_range:
+                            for kernel_size in kernel_size_range:
+                                for learning_rate in learning_rate_range:
+                                    model = create_model(units, filters, kernel_size, learning_rate)
+                                    history = model.fit(X_train, y_train, batch_size=batch_size, epochs=1, verbose=0)
+                                    y_pred_test = model.predict(X_test)
+                                    reward = get_reward(y_test, y_pred_test)
+
+                                    if best_reward is None or reward >= best_reward:
+                                        best_reward = reward
+                                        best_params = {'units': units, 'filters': filters, 'kernel_size': kernel_size, 'learning_rate': learning_rate}
+
+                    num_loops_without_improvement = 0
+                    print("Grid search completed. Best parameters:", best_params)
+
+            # Check if the minimum reward threshold is reached after grid search
+            if best_reward >= min_reward_threshold:
+                break
+
+        # Check if the minimum reward threshold is reached
+        if best_reward >= min_reward_threshold:
+            break
 
     print("Training completed.")
 
