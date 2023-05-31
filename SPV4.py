@@ -367,7 +367,7 @@ def train_model():
     # Define grid search parameters
     units_range = range(50, 801, 50)
     filters_range = range(50, 801, 50)
-    kernel_size_range = range(1, 16)
+    kernel_size_range = range(2, 16)
     learning_rate_range = [0.0001, 0.001, 0.01, 0.015]
 
     # Define RL training loop
@@ -393,7 +393,7 @@ def train_model():
             if epoch == 0:
                 units = 50
                 filters = 50
-                kernel_size = 1
+                kernel_size = 2
                 learning_rate = 0.0001
             else:
                 units = best_params['units']
@@ -405,7 +405,10 @@ def train_model():
 
             # Train the model for one epoch
             for i in range(0, len(X_train), batch_size):
-                sys.stdout.write('\033[F\033[K')
+                if i == 0:
+                    0
+                else:
+                    sys.stdout.write('\033[F\033[K')
                 print("Batch", i, "/", len(X_train))
                 batch_X = X_train[i:i + batch_size]
                 batch_y = y_train[i:i + batch_size]
@@ -448,10 +451,12 @@ def train_model():
                         for filters in filters_range:
                             for kernel_size in kernel_size_range:
                                 for learning_rate in learning_rate_range:
+                                    print("\nTrying Params:", best_params)
                                     model = create_model(units, filters, kernel_size, learning_rate)
-                                    history = model.fit(X_train, y_train, batch_size=batch_size, epochs=1, verbose=0)
+                                    history = model.fit(X_train, y_train, batch_size=batch_size, epochs=1, verbose=1)
                                     y_pred_test = model.predict(X_test)
                                     reward = get_reward(y_test, y_pred_test)
+                                    print("Test reward:", test_reward)
 
                                     if best_reward is None or reward >= best_reward:
                                         best_reward = reward
