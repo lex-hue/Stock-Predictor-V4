@@ -78,6 +78,7 @@ def install_dependencies():
             "tensorflow-cpu",
             "matplotlib",
             "ta-lib",
+            "bayesian-optimization",
         ]
         total_packages = len(packages)
         progress = 0
@@ -364,11 +365,8 @@ def train_model():
 
         return model
 
-    # Define grid search parameters
-    units_range = range(50, 801, 50)
-    filters_range = range(50, 801, 50)
-    kernel_size_range = range(2, 16)
-    learning_rate_range = [0.0001, 0.001, 0.01, 0.015]
+    # Define Bayesian optimization
+    from bayes_opt import BayesianOptimization
 
     # Define RL training loop
     epochs = 20
@@ -377,97 +375,55 @@ def train_model():
     best_model_path = "model.h5"
     min_reward_threshold = float(input("Enter the minimum reward threshold (e.g., 0.7): "))
 
-    num_loops_without_improvement = 0
-    max_loops_without_improvement = 10
+    def optimize_model(units, filters, kernel_size, learning_rate):
+        model = create_model(int(units), int(filters), int(kernel_size), learning_rate)
 
-    while True:
-        if num_loops_without_improvement >= max_loops_without_improvement:
-            continue_training = input("The model couldn't find any better architecture. Do you want to continue training? (y/n): ")
-            if continue_training.lower() != 'y':
-                break
-
-        print("\nStarting RL training loop...")
-        for epoch in range(epochs):
-            print("\nEpoch", epoch + 1, "/", epochs)
-
-            if epoch == 0:
-                units = 50
-                filters = 50
-                kernel_size = 2
-                learning_rate = 0.0001
-            else:
-                units = best_params['units']
-                filters = best_params['filters']
-                kernel_size = best_params['kernel_size']
-                learning_rate = best_params['learning_rate']
-
-            model = create_model(units, filters, kernel_size, learning_rate)
-
-            # Train the model for one epoch
-            for i in range(0, len(X_train), batch_size):
-                if i == 0:
-                    0
-                else:
-                    sys.stdout.write('\033[F\033[K')
+        # Train the model for one epoch
+        for i in range(0, len(X_train), batch_size):
+            if i == 0:
                 print("Batch", i, "/", len(X_train))
-                batch_X = X_train[i:i + batch_size]
-                batch_y = y_train[i:i + batch_size]
-                history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=1)
+            else:
                 sys.stdout.write('\033[F\033[K')
-
-            # Evaluate the model on the test set
-            print("\nEvaluating the Model\n")
-            y_pred_test = model.predict(X_test)
-            sys.stdout.write('\033[F\033[K')
-            test_reward = get_reward(y_test, y_pred_test)
-            test_loss = model.evaluate(X_test, y_test, verbose=0)
+                print("Batch", i, "/", len(X_train))
+            batch_X = X_train[i:i + batch_size]
+            batch_y = y_train[i:i + batch_size]
+            history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=1)
             sys.stdout.write('\033[F\033[K')
 
-            print("Test reward:", test_reward)
-            print("Test loss:", test_loss)
+        # Evaluate the model on the test set
+        print("\nEvaluating the Model\n")
+        y_pred_test = model.predict(X_test)
+        sys.stdout.write('\033[F\033[K')
+        test_reward = get_reward(y_test, y_pred_test)
+        test_loss = model.evaluate(X_test, y_test, verbose=0)
+        sys.stdout.write('\033[F\033[K')
 
-            # Save the model if it achieves higher reward
-            if epoch == 0 or test_reward >= best_reward:
-                model.save(best_model_path)
-                best_reward = test_reward
-                best_params = {'units': units, 'filters': filters, 'kernel_size': kernel_size, 'learning_rate': learning_rate}
-                num_loops_without_improvement = 0
-                print("Model saved!")
+        print("Test reward:", test_reward)
+        print("Test loss:", test_loss)
 
-            # Check if the minimum reward threshold is reached
-            if best_reward >= min_reward_threshold:
-                break
+        return test_reward
 
-            # Grid search if the model doesn't improve after 3 evaluations
-            if epoch >= 2:
-                num_loops_without_improvement += 1
+    # Define the search space boundaries
+    pbounds = {
+        'units': (50, 800),
+        'filters': (50, 800),
+        'kernel_size': (2, 15),
+        'learning_rate': (0.0001, 0.015),
+    }
 
-                if num_loops_without_improvement >= 3:
-                    print("\nPerforming grid search...")
-                    best_params = {'units': units, 'filters': filters, 'kernel_size': kernel_size, 'learning_rate': learning_rate}
-                    best_reward = None
+    # Define Bayesian optimization function
+    optimizer = BayesianOptimization(f=optimize_model, pbounds=pbounds)
 
-                    for units in units_range:
-                        for filters in filters_range:
-                            for kernel_size in kernel_size_range:
-                                for learning_rate in learning_rate_range:
-                                    print("\nTrying Params:", best_params)
-                                    model = create_model(units, filters, kernel_size, learning_rate)
-                                    history = model.fit(X_train, y_train, batch_size=batch_size, epochs=1, verbose=1)
-                                    y_pred_test = model.predict(X_test)
-                                    reward = get_reward(y_test, y_pred_test)
-                                    print("Test reward:", test_reward)
+    # Perform Bayesian optimization
+    num_iterations = 10
 
-                                    if best_reward is None or reward >= best_reward:
-                                        best_reward = reward
-                                        best_params = {'units': units, 'filters': filters, 'kernel_size': kernel_size, 'learning_rate': learning_rate}
+    for _ in range(num_iterations):
+        optimizer.maximize(init_points=2, n_iter=3)
+        best_params = optimizer.max['params']
+        best_reward = optimizer.max['target']
 
-                    num_loops_without_improvement = 0
-                    print("Grid search completed. Best parameters:", best_params)
-
-            # Check if the minimum reward threshold is reached after grid search
-            if best_reward >= min_reward_threshold:
-                break
+        print("Best reward:", best_reward)
+        print("Best parameters:", best_params)
 
         # Check if the minimum reward threshold is reached
         if best_reward >= min_reward_threshold:
@@ -476,7 +432,10 @@ def train_model():
     print("Training completed.")
 
     # Load the best model and evaluate it
-    model = load_model(best_model_path)
+    model = create_model(int(best_params['units']), int(best_params['filters']), int(best_params['kernel_size']), best_params['learning_rate'])
+    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
+    model.save("model.h5")
+
     y_pred_test = model.predict(X_test)
     test_reward = get_reward(y_test, y_pred_test)
     test_loss = model.evaluate(X_test, y_test)
