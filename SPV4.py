@@ -255,7 +255,6 @@ def prepare_data():
 
 
 def train_model():
-    print("Training the SPV4 model...")
     import os
     import sys
 
@@ -263,21 +262,22 @@ def train_model():
 
     import pandas as pd
     import numpy as np
-    from sklearn.preprocessing import MinMaxScaler
     import tensorflow as tf
+    from sklearn.preprocessing import MinMaxScaler
     from tensorflow.keras.models import Sequential, load_model
     from tensorflow.keras.layers import (
         LSTM,
         Dense,
         BatchNormalization,
-        GRU,
         Conv1D,
         MaxPooling1D,
         TimeDistributed,
     )
     from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
     from sklearn.metrics import mean_absolute_percentage_error, r2_score
+    from bayes_opt import BayesianOptimization
 
+    print("Training the SPV4 model...")
     print("TensorFlow version:", tf.__version__)
 
     # Define reward function
@@ -318,7 +318,7 @@ def train_model():
 
     # Split data into train and test sets
     train_data_norm = data_norm[: int(0.8 * len(data))]
-    test_data_norm = data_norm[int(0.8 * len(data)) :]
+    test_data_norm = data_norm[int(0.8 * len(data)):]
 
     # Define time steps
     timesteps = 100
@@ -343,7 +343,7 @@ def train_model():
         model.add(Conv1D(filters=filters // 2, kernel_size=kernel_size // 2, activation="relu"))
         model.add(LSTM(units=units, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
         model.add(BatchNormalization())
-        model.add(GRU(units=units, return_sequences=True))
+        model.add(LSTM(units=units, return_sequences=True))
         model.add(BatchNormalization())
         model.add(Dense(units=units))
         model.add(BatchNormalization())
@@ -351,7 +351,7 @@ def train_model():
         model.add(BatchNormalization())
         model.add(LSTM(units=units // 2, return_sequences=True))
         model.add(BatchNormalization())
-        model.add(GRU(units=units // 2, return_sequences=True))
+        model.add(LSTM(units=units // 2, return_sequences=True))
         model.add(BatchNormalization())
         model.add(TimeDistributed(Dense(units=units // 2)))
         model.add(BatchNormalization())
@@ -365,14 +365,10 @@ def train_model():
 
         return model
 
-    # Define Bayesian optimization
-    from bayes_opt import BayesianOptimization
-
     # Define RL training loop
     epochs = 20
     batch_size = 128
     best_reward = None
-    best_model_path = "model.h5"
     min_reward_threshold = float(input("Enter the minimum reward threshold (e.g., 0.7): "))
 
     def optimize_model(units, filters, kernel_size, learning_rate):
@@ -391,15 +387,14 @@ def train_model():
             sys.stdout.write('\033[F\033[K')
 
         # Evaluate the model on the test set
-        print("\nEvaluating the Model\n")
         y_pred_test = model.predict(X_test)
         sys.stdout.write('\033[F\033[K')
         test_reward = get_reward(y_test, y_pred_test)
-        test_loss = model.evaluate(X_test, y_test, verbose=0)
+        test_loss = model.evaluate(X_test, y_test, verbose=1)
         sys.stdout.write('\033[F\033[K')
 
         print("Test reward:", test_reward)
-        print("Test loss:", test_loss)
+        print("Test loss:", test_loss, "\n")
 
         return test_reward
 
@@ -422,26 +417,67 @@ def train_model():
         best_params = optimizer.max['params']
         best_reward = optimizer.max['target']
 
-        print("Best reward:", best_reward)
-        print("Best parameters:", best_params)
-
         # Check if the minimum reward threshold is reached
         if best_reward >= min_reward_threshold:
             break
 
-    print("Training completed.")
+    print("\nBest reward:", best_reward)
+    print("Best parameters:", best_params)
+
+    best_reward1 = None
+    model_saved = 0
 
     # Load the best model and evaluate it
-    model = create_model(int(best_params['units']), int(best_params['filters']), int(best_params['kernel_size']), best_params['learning_rate'])
-    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
-    model.save("model.h5")
+    print("Training best model")
+    if model_saved == 0:
+        model = create_model(int(best_params['units']), int(best_params['filters']), int(best_params['kernel_size']), best_params['learning_rate'])
+        for i in range(epochs):
+            print("Epoch", i, "/", epochs)
+            # Train the model for one epoch
+            for a in range(0, len(X_train), batch_size):
+                if a == 0:
+                    print("Batch", a, "/", len(X_train))
+                else:
+                    sys.stdout.write('\033[F\033[K')
+                    print("Batch", a, "/", len(X_train))
+                batch_X = X_train[a:a + batch_size]
+                batch_y = y_train[a:a + batch_size]
+                history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
+                sys.stdout.write('\033[F\033[K')
 
-    y_pred_test = model.predict(X_test)
-    test_reward = get_reward(y_test, y_pred_test)
-    test_loss = model.evaluate(X_test, y_test)
+            # Evaluate the model on the test set
+            y_pred_test = model.predict(X_test)
+            sys.stdout.write('\033[F\033[K')
+            test_reward = get_reward(y_test, y_pred_test)
+            test_loss = model.evaluate(X_test, y_test, verbose=1)
+            sys.stdout.write('\033[F\033[K')
 
-    print("Final test reward:", test_reward)
-    print("Final test loss:", test_loss)
+            print("Test reward:", test_reward)
+            print("Test loss:", test_loss, "\n")
+
+            if i == 0:
+                best_reward1 = test_reward
+
+            if test_reward >= best_reward1 and test_reward >= best_reward:
+                print("Model saved!")
+                model_saved = 1
+                best_reward1 = test_reward
+                model.save("model.h5")
+            
+            if test_reward >= min_reward_threshold:
+                print("Model reached reward threshold", test_reward, ". Saving and stopping epochs!")
+                model_saved = 1
+                model.save("model.h5")
+                break
+
+    else:
+        model = load_model("model.h5")
+        y_pred_test = model.predict(X_test)
+        test_reward = get_reward(y_test, y_pred_test)
+        test_loss = model.evaluate(X_test, y_test)
+
+        print("Final test reward:", test_reward)
+        print("Final test loss:", test_loss)
 
 def evaluate_model():
     print("Evaluating the model...")
