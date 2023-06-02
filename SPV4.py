@@ -377,24 +377,19 @@ def train_model():
         # Train the model for one epoch
         for i in range(0, len(X_train), batch_size):
             if i == 0:
-                print("Batch", i, "/", len(X_train))
+                print("Batch", i, "/", len(X_train), "(", ((i/len(X_train))*100), "% Done)")
             else:
                 sys.stdout.write('\033[F\033[K')
-                print("Batch", i, "/", len(X_train))
+                print("Batch", i, "/", len(X_train), "(", ((i/len(X_train))*100), "% Done)")
             batch_X = X_train[i:i + batch_size]
             batch_y = y_train[i:i + batch_size]
-            history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=1)
-            sys.stdout.write('\033[F\033[K')
+            history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
 
         # Evaluate the model on the test set
         y_pred_test = model.predict(X_test)
         sys.stdout.write('\033[F\033[K')
         test_reward = get_reward(y_test, y_pred_test)
-        test_loss = model.evaluate(X_test, y_test, verbose=1)
         sys.stdout.write('\033[F\033[K')
-
-        print("Test reward:", test_reward)
-        print("Test loss:", test_loss, "\n")
 
         return test_reward
 
@@ -412,8 +407,9 @@ def train_model():
     # Perform Bayesian optimization
     num_iterations = 10
 
-    for _ in range(num_iterations):
-        optimizer.maximize(init_points=2, n_iter=3)
+    for a in range(num_iterations):
+        print(((a/num_iterations)*100), "% Done")
+        optimizer.maximize(init_points=2, n_iter=1)
         best_params = optimizer.max['params']
         best_reward = optimizer.max['target']
 
@@ -436,24 +432,20 @@ def train_model():
             # Train the model for one epoch
             for a in range(0, len(X_train), batch_size):
                 if a == 0:
-                    print("Batch", a, "/", len(X_train))
+                    print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
                 else:
                     sys.stdout.write('\033[F\033[K')
-                    print("Batch", a, "/", len(X_train))
+                    print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
                 batch_X = X_train[a:a + batch_size]
                 batch_y = y_train[a:a + batch_size]
                 history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
-                sys.stdout.write('\033[F\033[K')
 
             # Evaluate the model on the test set
             y_pred_test = model.predict(X_test)
             sys.stdout.write('\033[F\033[K')
             test_reward = get_reward(y_test, y_pred_test)
-            test_loss = model.evaluate(X_test, y_test, verbose=1)
-            sys.stdout.write('\033[F\033[K')
 
             print("Test reward:", test_reward)
-            print("Test loss:", test_loss, "\n")
 
             if i == 0:
                 best_reward1 = test_reward
