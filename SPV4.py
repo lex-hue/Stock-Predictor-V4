@@ -1131,6 +1131,7 @@ import hashlib
 
 repo_owner = "Qerim-iseni09"
 repo_name = "Stock-Predictor-V4"
+base_dir = "./"  # Base directory to store repository files
 
 def get_latest_commit_sha():
     url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits"
@@ -1139,60 +1140,70 @@ def get_latest_commit_sha():
     commits = response.json()
     return commits[0]["sha"] if commits else None
 
-def get_latest_release_tag():
-    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+def get_file_content(file_path):
+    url = f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}/master/{file_path}"
     response = requests.get(url)
     response.raise_for_status()
-    release = response.json()
-    return release["tag_name"] if release else None
+    return response.text
 
 def update_repository():
-    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/tarball/master"
+    os.makedirs(base_dir, exist_ok=True)
+    files_updated = 0
+
+    # Get a list of all files in the repository
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents"
     response = requests.get(url)
     response.raise_for_status()
-    content = response.content
+    files = response.json()
 
-    file_name = f"{repo_name}.tar.gz"
+    for file in files:
+        if file["type"] == "file":
+            file_path = file["path"]
+            file_name = os.path.join(base_dir, file_path)
 
-    with open(file_name, "wb") as file:
-        file.write(content)
+            # Check if the file already exists locally
+            if os.path.exists(file_name):
+                with open(file_name, "r") as local_file:
+                    local_content = local_file.read()
+                    local_sha = hashlib.sha256(local_content.encode()).hexdigest()
 
-    # Extract the contents of the tarball
-    extract_directory = f"./{repo_name}"
-    os.makedirs(extract_directory, exist_ok=True)
-    os.system(f"tar -xf {file_name} -C {extract_directory} --strip-components=1")
+                # Get the latest commit SHA for the file
+                url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?path={file_path}"
+                response = requests.get(url)
+                response.raise_for_status()
+                commits = response.json()
 
-    # Clean up the tarball file
-    os.remove(file_name)
+                if commits:
+                    latest_sha = commits[0]["sha"]
+
+                    # If the file has changed, update it
+                    if latest_sha != local_sha:
+                        content = get_file_content(file_path)
+                        with open(file_name, "w") as updated_file:
+                            updated_file.write(content)
+                            files_updated += 1
+            else:
+                # If the file doesn't exist locally, create it
+                content = get_file_content(file_path)
+                with open(file_name, "w") as new_file:
+                    new_file.write(content)
+                    files_updated += 1
+
+    return files_updated
 
 def delete_self():
     os.remove(__file__)
 
 latest_commit_sha = get_latest_commit_sha()
-latest_release_tag = get_latest_release_tag()
 
-if latest_commit_sha or latest_release_tag:
-    current_sha = None
-    if os.path.exists(repo_name):
-        current_sha = hashlib.sha256(open(repo_name, "rb").read()).hexdigest()
-
-    if latest_commit_sha and latest_commit_sha != current_sha:
-        print("An updated version of the repository is available.")
-        choice = input("Do you want to update? (yes/no): ")
-        if choice.lower() == "yes":
-            update_repository()
-            print("The repository has been updated.")
-        else:
-            print("Update cancelled.")
-
-    elif latest_release_tag:
-        print("A new release is available.")
-        choice = input("Do you want to update? (yes/no): ")
-        if choice.lower() == "yes":
-            update_repository()
-            print("The repository has been updated.")
-        else:
-            print("Update cancelled.")
+if latest_commit_sha:
+    print("Updates are available in the repository.")
+    choice = input("Do you want to update? (yes/no): ")
+    if choice.lower() == "yes":
+        files_updated = update_repository()
+        print(f"{files_updated} file(s) have been updated.")
+    else:
+        print("Update cancelled.")
 
     delete_self()
 else:
