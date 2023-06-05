@@ -8,7 +8,7 @@
 - [Stock-Predictor-V4](#stock-predictor-v4)
   - [1a. Installation](#1a-installation)
   - [1b. Installation with Virtual Environment (venv) in Python](#1b-installation-with-virtual-environment-venv-in-python)
-  - [1c. Updating the Repository](#1c-updating-the-repository)
+  - 
   - [2. Data Preparation](#2-data-preparation)
   - [3. Training the LSTM RL Model](#3-training-the-lstm-rl-model)
   - [4. Evaluating the Model](#4-evaluating-the-model)

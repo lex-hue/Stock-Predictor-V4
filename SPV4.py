@@ -1161,20 +1161,20 @@ def update_repository():
             file_path = file["path"]
             file_name = os.path.join(base_dir, file_path)
 
-            # Check if the file already exists locally
-            if os.path.exists(file_name):
-                with open(file_name, "r") as local_file:
-                    local_content = local_file.read()
-                    local_sha = hashlib.sha256(local_content.encode()).hexdigest()
+            # Get the latest commit SHA for the file
+            url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?path={file_path}"
+            response = requests.get(url)
+            response.raise_for_status()
+            commits = response.json()
 
-                # Get the latest commit SHA for the file
-                url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?path={file_path}"
-                response = requests.get(url)
-                response.raise_for_status()
-                commits = response.json()
+            if commits:
+                latest_sha = commits[0]["sha"]
 
-                if commits:
-                    latest_sha = commits[0]["sha"]
+                # Check if the file exists locally
+                if os.path.exists(file_name):
+                    with open(file_name, "r") as local_file:
+                        local_content = local_file.read()
+                        local_sha = hashlib.sha256(local_content.encode()).hexdigest()
 
                     # If the file has changed, update it
                     if latest_sha != local_sha:
@@ -1182,12 +1182,12 @@ def update_repository():
                         with open(file_name, "w") as updated_file:
                             updated_file.write(content)
                             files_updated += 1
-            else:
-                # If the file doesn't exist locally, create it
-                content = get_file_content(file_path)
-                with open(file_name, "w") as new_file:
-                    new_file.write(content)
-                    files_updated += 1
+                else:
+                    # If the file doesn't exist locally, create it
+                    content = get_file_content(file_path)
+                    with open(file_name, "w") as new_file:
+                        new_file.write(content)
+                        files_updated += 1
 
     return files_updated
 
