@@ -3,12 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Data Folder
+data/
+
 # Talib
 ta-lib/
 ta-lib*
-
-# Data in Data folder
-data/*.csv
 
 # Saved data by Scripts
 data.csv

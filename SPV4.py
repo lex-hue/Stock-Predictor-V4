@@ -1,6 +1,5 @@
 import argparse
 
-
 def install_dependencies():
     import os
     import subprocess
@@ -124,6 +123,15 @@ def install_dependencies():
         print("Python dependencies installation completed successfully!\n")
         print("SPV4 installation completed successfully!")
 
+        print("Creating 'data' directory...")
+        os.makedirs("data", exist_ok=True)
+
+        filename = os.path.join("data", "add csvs in this folder.txt")
+        with open(filename, "w") as file:
+            file.write("This is the 'add csvs in this folder.txt' file.")
+
+        print("'data' directory and file created successfully!\n")
+        print("SPV4 installation completed successfully!")
 
 def prepare_data():
     print("Preprocessing and preparing the CSV data...")
@@ -1112,6 +1120,93 @@ def gen_stock():
     # Generate the stock data CSV file
     generate_stock_data_csv(file_path, num_lines, data_type)
 
+def update():
+    import os
+
+    def create_update_script():
+        script_content = """
+import os
+import requests
+import hashlib
+
+repo_owner = "Qerim-iseni09"
+repo_name = "Stock-Predictor-V4"
+
+def get_latest_commit_sha():
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits"
+    response = requests.get(url)
+    response.raise_for_status()
+    commits = response.json()
+    return commits[0]["sha"] if commits else None
+
+def get_latest_release_tag():
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+    response = requests.get(url)
+    response.raise_for_status()
+    release = response.json()
+    return release["tag_name"] if release else None
+
+def update_repository():
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/tarball/master"
+    response = requests.get(url)
+    response.raise_for_status()
+    content = response.content
+
+    file_name = f"{repo_name}.tar.gz"
+
+    with open(file_name, "wb") as file:
+        file.write(content)
+
+    # Extract the contents of the tarball
+    extract_directory = f"./{repo_name}"
+    os.makedirs(extract_directory, exist_ok=True)
+    os.system(f"tar -xf {file_name} -C {extract_directory} --strip-components=1")
+
+    # Clean up the tarball file
+    os.remove(file_name)
+
+def delete_self():
+    os.remove(__file__)
+
+latest_commit_sha = get_latest_commit_sha()
+latest_release_tag = get_latest_release_tag()
+
+if latest_commit_sha or latest_release_tag:
+    current_sha = None
+    if os.path.exists(repo_name):
+        current_sha = hashlib.sha256(open(repo_name, "rb").read()).hexdigest()
+
+    if latest_commit_sha and latest_commit_sha != current_sha:
+        print("An updated version of the repository is available.")
+        choice = input("Do you want to update? (yes/no): ")
+        if choice.lower() == "yes":
+            update_repository()
+            print("The repository has been updated.")
+        else:
+            print("Update cancelled.")
+
+    elif latest_release_tag:
+        print("A new release is available.")
+        choice = input("Do you want to update? (yes/no): ")
+        if choice.lower() == "yes":
+            update_repository()
+            print("The repository has been updated.")
+        else:
+            print("Update cancelled.")
+
+    delete_self()
+else:
+    print("No updates available at the moment.")
+    """
+
+        with open("update.py", "w") as file:
+            file.write(script_content)
+
+    def run_update_script():
+        os.system("python update.py")
+
+    create_update_script()
+    run_update_script()
 
 def do_all_actions():
     prepare_data()
@@ -1124,6 +1219,9 @@ def do_all_actions():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SPV4 Script")
+    parser.add_argument(
+        "--update", action="store_true", help="Check updates for SPV4"
+    )
     parser.add_argument(
         "--install", action="store_true", help="Install all dependencies for SPV4"
     )
@@ -1161,6 +1259,8 @@ if __name__ == "__main__":
     else:
         if args.install:
             install_dependencies()
+        if args.update:
+            update()
         if args.generate_stock:
             gen_stock()
         if args.prepare_data:
