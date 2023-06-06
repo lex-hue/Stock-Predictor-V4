@@ -1125,84 +1125,77 @@ def update():
 
     def create_update_script():
         script_content = """
-import subprocess
-import urllib.request
 import os
+import subprocess
 
-# Constants
-LOCAL_COMMIT_SHA_FILE = "commit_sha.sha"
-REMOTE_COMMIT_SHA_URL = "https://raw.githubusercontent.com/Qerim-iseni09/Stock-Predictor-V4/main/commit_sha.sha"
-MAJOR_UPDATE_MSG = "Major Update"
-SMALL_CHANGES_MSG = "Small Changes"
+def print_red(text):
+    print(f"\033[91m{text}\033[0m")
 
-# Colors for styling
-COLOR_RED = "\033[91m"
-COLOR_GREEN = "\033[92m"
-COLOR_CYAN = "\033[96m"
-COLOR_RESET = "\033[0m"
+def print_yellow(text):
+    print(f"\033[93m{text}\033[0m")
 
-# Function to retrieve remote commit SHA
-def get_remote_commit_sha():
+def print_green(text):
+    print(f"\033[92m{text}\033[0m")
+
+# Path to the local commit_sha.sha file
+local_sha_path = "commit_sha.sha"
+
+# Path to the online commit_sha.sha file (replace with your online file path)
+online_sha_path = "https://raw.githubusercontent.com/Qerim-iseni09/Stock-Predictor-V4/main/commit_sha.sha"
+downloaded_sha = "commit_sha_online.sha"
+
+def get_online_sha():
+    # Retrieve the online commit SHA file
+    subprocess.run(["wget", "-q", "-O", downloaded_sha, online_sha_path])
+    with open(downloaded_sha, "r") as file:
+        lines = file.readlines()
+        return lines[0].strip(), lines[1].strip()
+    subprocess.run(["rm", "-rf", downloaded_sha])
+
+def check_for_updates():
+    local_sha = ""
+    online_sha = ""
+    major_update = False
+
+    if os.path.exists(local_sha_path):
+        with open(local_sha_path, "r") as file:
+            local_sha = file.readline().strip()
+
     try:
-        response = urllib.request.urlopen(REMOTE_COMMIT_SHA_URL)
-        content = response.read().decode('utf-8').strip()
-        return content
-    except:
-        return None
-
-# Function to read local commit SHA
-def get_local_commit_sha():
-    if os.path.isfile(LOCAL_COMMIT_SHA_FILE):
-        with open(LOCAL_COMMIT_SHA_FILE, 'r') as file:
-            return file.read().strip()
-    return None
-
-# Function to prompt the user for a major update
-def prompt_for_major_update():
-    while True:
-        response = input(COLOR_CYAN + "A major update is available. Do you want to update? (y/n): " + COLOR_RESET)
-        if response.lower() in ['y', 'n']:
-            return response.lower() == 'y'
-        print(COLOR_RED + "Invalid response. Please enter 'y' for yes or 'n' for no." + COLOR_RESET)
-
-# Function to perform the update
-def perform_update():
-    print(COLOR_GREEN + "Performing update..." + COLOR_RESET)
-    subprocess.run(['git', 'pull'])  # Use git pull command for updating
-    print(COLOR_GREEN + "Update complete!" + COLOR_RESET)
-
-# Function to delete the script file after update
-def delete_script():
-    os.remove(__file__)
-    print(COLOR_GREEN + "Script deleted." + COLOR_RESET)
-
-# Main logic
-def main():
-    local_sha = get_local_commit_sha()
-    remote_sha = get_remote_commit_sha()
-
-    if local_sha == remote_sha:
-        print(COLOR_GREEN + "No updates available." + COLOR_RESET)
+        online_sha, update_type = get_online_sha()
+    except Exception as e:
+        print_red("Failed to retrieve the online commit SHA.")
+        print_red(str(e))
         return
 
-    local_update_type = local_sha.split('\n')[1].strip()
-    remote_update_type = remote_sha.split('\n')[1].strip()
+    if local_sha != online_sha:
+        if update_type == "(Major Update)":
+            major_update = True
+            print_red("Major update available!")
+            print_red("Please consider updating to the latest version.")
 
-    if remote_update_type == MAJOR_UPDATE_MSG:
-        print(COLOR_RED + "A major update is available." + COLOR_RESET)
-        if local_update_type == MAJOR_UPDATE_MSG:
-            print(COLOR_RED + "Local commit SHA indicates a major update has already been performed." + COLOR_RESET)
-            return
-        if not prompt_for_major_update():
-            print(COLOR_RED + "Skipping major update." + COLOR_RESET)
-            return
+        print_yellow("Do you want to update your repository?")
+        confirmation = input("(yes/no): ")
 
-    perform_update()
+        if confirmation.lower() == "yes":
+            try:
+                subprocess.run(["git", "pull"])
+                print_green("Repository updated successfully!")
 
-# Run the script
-if __name__ == "__main__":
-    main()
-    delete_script()
+                if major_update:
+                    print_red("This was a major update. Please review the changelog.")
+
+                # Delete the script after successful update
+                os.remove(__file__)
+            except Exception as e:
+                print_red("Failed to update the repository.")
+                print_red(str(e))
+        else:
+            print_yellow("Skipping repository update. Please update manually.")
+    else:
+        print_green("No updates available. Repository is up to date.")
+
+check_for_updates()
     """
 
         with open("update.py", "w") as file:

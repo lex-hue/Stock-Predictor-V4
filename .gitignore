@@ -5,6 +5,7 @@ __pycache__/
 
 # Data Folder
 data/
+commit_sha_online.sha
 
 # Talib
 ta-lib/
