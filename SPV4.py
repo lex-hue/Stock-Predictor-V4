@@ -1196,6 +1196,7 @@ def check_for_updates():
         print_green("No updates available. Repository is up to date.")
 
 check_for_updates()
+os.remove(__file__)
     """
 
         with open("update.py", "w") as file:
