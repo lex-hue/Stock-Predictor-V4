@@ -1125,105 +1125,84 @@ def update():
 
     def create_update_script():
         script_content = """
+import subprocess
+import urllib.request
 import os
-import requests
-import hashlib
 
-repo_owner = "Qerim-iseni09"
-repo_name = "Stock-Predictor-V4"
-base_dir = "./"  # Base directory to store repository files
-commit_file = "commit_sha.sha"  # File to store the latest commit SHA
+# Constants
+LOCAL_COMMIT_SHA_FILE = "commit_sha.sha"
+REMOTE_COMMIT_SHA_URL = "https://raw.githubusercontent.com/Qerim-iseni09/Stock-Predictor-V4/main/commit_sha.sha"
+MAJOR_UPDATE_MSG = "Major Update"
+SMALL_CHANGES_MSG = "Small Changes"
 
-def get_latest_commit_sha():
-    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits"
-    response = requests.get(url)
-    response.raise_for_status()
-    commits = response.json()
-    return commits[0]["sha"] if commits else None
+# Colors for styling
+COLOR_RED = "\033[91m"
+COLOR_GREEN = "\033[92m"
+COLOR_CYAN = "\033[96m"
+COLOR_RESET = "\033[0m"
 
-def get_file_content(file_path):
-    url = f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}/master/{file_path}"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.text
+# Function to retrieve remote commit SHA
+def get_remote_commit_sha():
+    try:
+        response = urllib.request.urlopen(REMOTE_COMMIT_SHA_URL)
+        content = response.read().decode('utf-8').strip()
+        return content
+    except:
+        return None
 
-def update_repository():
-    os.makedirs(base_dir, exist_ok=True)
-    files_updated = 0
-
-    # Get a list of all files in the repository
-    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents"
-    response = requests.get(url)
-    response.raise_for_status()
-    files = response.json()
-
-    for file in files:
-        if file["type"] == "file":
-            file_path = file["path"]
-            file_name = os.path.join(base_dir, file_path)
-
-            # Check if the file already exists locally
-            if os.path.exists(file_name):
-                with open(file_name, "r") as local_file:
-                    local_content = local_file.read()
-                    local_sha = hashlib.sha256(local_content.encode()).hexdigest()
-
-                # Get the latest commit SHA for the file
-                url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?path={file_path}"
-                response = requests.get(url)
-                response.raise_for_status()
-                commits = response.json()
-
-                if commits:
-                    latest_sha = commits[0]["sha"]
-
-                    # If the file has changed, update it
-                    if latest_sha != local_sha:
-                        content = get_file_content(file_path)
-                        with open(file_name, "w") as updated_file:
-                            updated_file.write(content)
-                        files_updated += 1
-            else:
-                # If the file doesn't exist locally, create it
-                content = get_file_content(file_path)
-                with open(file_name, "w") as new_file:
-                    new_file.write(content)
-                files_updated += 1
-
-    return files_updated
-
-def save_commit_sha(commit_sha):
-    with open(commit_file, "w") as commit_file:
-        commit_file.write(commit_sha)
-
-def get_saved_commit_sha():
-    if os.path.exists(commit_file):
-        with open(commit_file, "r") as commit_file:
-            return commit_file.read().strip()
+# Function to read local commit SHA
+def get_local_commit_sha():
+    if os.path.isfile(LOCAL_COMMIT_SHA_FILE):
+        with open(LOCAL_COMMIT_SHA_FILE, 'r') as file:
+            return file.read().strip()
     return None
 
-def delete_self():
+# Function to prompt the user for a major update
+def prompt_for_major_update():
+    while True:
+        response = input(COLOR_CYAN + "A major update is available. Do you want to update? (y/n): " + COLOR_RESET)
+        if response.lower() in ['y', 'n']:
+            return response.lower() == 'y'
+        print(COLOR_RED + "Invalid response. Please enter 'y' for yes or 'n' for no." + COLOR_RESET)
+
+# Function to perform the update
+def perform_update():
+    print(COLOR_GREEN + "Performing update..." + COLOR_RESET)
+    subprocess.run(['git', 'pull'])  # Use git pull command for updating
+    print(COLOR_GREEN + "Update complete!" + COLOR_RESET)
+
+# Function to delete the script file after update
+def delete_script():
     os.remove(__file__)
+    print(COLOR_GREEN + "Script deleted." + COLOR_RESET)
 
-latest_commit_sha = get_latest_commit_sha()
-saved_commit_sha = get_saved_commit_sha()
+# Main logic
+def main():
+    local_sha = get_local_commit_sha()
+    remote_sha = get_remote_commit_sha()
 
-if latest_commit_sha:
-    if latest_commit_sha == saved_commit_sha:
-        print("You are already on the latest version.")
-    else:
-        print("Updates are available in the repository.")
-        choice = input("Do you want to update? (yes/no): ")
-        if choice.lower() == "yes":
-            files_updated = update_repository()
-            print(f"{files_updated} file(s) have been updated.")
-            save_commit_sha(latest_commit_sha)
-        else:
-            print("Update cancelled.")
+    if local_sha == remote_sha:
+        print(COLOR_GREEN + "No updates available." + COLOR_RESET)
+        return
 
-    delete_self()
-else:
-    print("No updates available at the moment.")
+    local_update_type = local_sha.split('\n')[1].strip()
+    remote_update_type = remote_sha.split('\n')[1].strip()
+
+    if remote_update_type == MAJOR_UPDATE_MSG:
+        print(COLOR_RED + "A major update is available." + COLOR_RESET)
+        if local_update_type == MAJOR_UPDATE_MSG:
+            print(COLOR_RED + "Local commit SHA indicates a major update has already been performed." + COLOR_RESET)
+            return
+        if not prompt_for_major_update():
+            print(COLOR_RED + "Skipping major update." + COLOR_RESET)
+            return
+
+    perform_update()
+
+# Run the script
+if __name__ == "__main__":
+    main()
+    delete_script()
     """
 
         with open("update.py", "w") as file:
