@@ -1131,7 +1131,8 @@ import hashlib
 
 repo_owner = "Qerim-iseni09"
 repo_name = "Stock-Predictor-V4"
-base_dir = "./"  # Base directory to store repository files
+base_dir = "repository"  # Base directory to store repository files
+commit_file = "commit_sha.txt"  # File to store the latest commit SHA
 
 def get_latest_commit_sha():
     url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits"
@@ -1161,20 +1162,20 @@ def update_repository():
             file_path = file["path"]
             file_name = os.path.join(base_dir, file_path)
 
-            # Get the latest commit SHA for the file
-            url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?path={file_path}"
-            response = requests.get(url)
-            response.raise_for_status()
-            commits = response.json()
+            # Check if the file already exists locally
+            if os.path.exists(file_name):
+                with open(file_name, "r") as local_file:
+                    local_content = local_file.read()
+                    local_sha = hashlib.sha256(local_content.encode()).hexdigest()
 
-            if commits:
-                latest_sha = commits[0]["sha"]
+                # Get the latest commit SHA for the file
+                url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits?path={file_path}"
+                response = requests.get(url)
+                response.raise_for_status()
+                commits = response.json()
 
-                # Check if the file exists locally
-                if os.path.exists(file_name):
-                    with open(file_name, "r") as local_file:
-                        local_content = local_file.read()
-                        local_sha = hashlib.sha256(local_content.encode()).hexdigest()
+                if commits:
+                    latest_sha = commits[0]["sha"]
 
                     # If the file has changed, update it
                     if latest_sha != local_sha:
@@ -1182,28 +1183,43 @@ def update_repository():
                         with open(file_name, "w") as updated_file:
                             updated_file.write(content)
                             files_updated += 1
-                else:
-                    # If the file doesn't exist locally, create it
-                    content = get_file_content(file_path)
-                    with open(file_name, "w") as new_file:
-                        new_file.write(content)
-                        files_updated += 1
+            else:
+                # If the file doesn't exist locally, create it
+                content = get_file_content(file_path)
+                with open(file_name, "w") as new_file:
+                    new_file.write(content)
+                    files_updated += 1
 
     return files_updated
+
+def save_commit_sha(commit_sha):
+    with open(commit_file, "w") as commit_file:
+        commit_file.write(commit_sha)
+
+def get_saved_commit_sha():
+    if os.path.exists(commit_file):
+        with open(commit_file, "r") as commit_file:
+            return commit_file.read().strip()
+    return None
 
 def delete_self():
     os.remove(__file__)
 
 latest_commit_sha = get_latest_commit_sha()
+saved_commit_sha = get_saved_commit_sha()
 
 if latest_commit_sha:
-    print("Updates are available in the repository.")
-    choice = input("Do you want to update? (yes/no): ")
-    if choice.lower() == "yes":
-        files_updated = update_repository()
-        print(f"{files_updated} file(s) have been updated.")
+    if latest_commit_sha == saved_commit_sha:
+        print("You are already on the latest version.")
     else:
-        print("Update cancelled.")
+        print("Updates are available in the repository.")
+        choice = input("Do you want to update? (yes/no): ")
+        if choice.lower() == "yes":
+            files_updated = update_repository()
+            print(f"{files_updated} file(s) have been updated.")
+            save_commit_sha(latest_commit_sha)
+        else:
+            print("Update cancelled.")
 
     delete_self()
 else:
