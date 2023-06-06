@@ -1131,8 +1131,8 @@ import hashlib
 
 repo_owner = "Qerim-iseni09"
 repo_name = "Stock-Predictor-V4"
-base_dir = "repository"  # Base directory to store repository files
-commit_file = "commit_sha.txt"  # File to store the latest commit SHA
+base_dir = "./"  # Base directory to store repository files
+commit_file = "commit_sha.sha"  # File to store the latest commit SHA
 
 def get_latest_commit_sha():
     url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits"
@@ -1182,13 +1182,13 @@ def update_repository():
                         content = get_file_content(file_path)
                         with open(file_name, "w") as updated_file:
                             updated_file.write(content)
-                            files_updated += 1
+                        files_updated += 1
             else:
                 # If the file doesn't exist locally, create it
                 content = get_file_content(file_path)
                 with open(file_name, "w") as new_file:
                     new_file.write(content)
-                    files_updated += 1
+                files_updated += 1
 
     return files_updated
 
