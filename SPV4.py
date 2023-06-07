@@ -375,27 +375,31 @@ def train_model():
 
     # Define RL training loop
     epochs = 20
-    batch_size = 128
+    epochs1 = 3
+    batch_size = 50
     best_reward = None
     min_reward_threshold = float(input("Enter the minimum reward threshold (e.g., 0.7): "))
 
     def optimize_model(units, filters, kernel_size, learning_rate):
         model = create_model(int(units), int(filters), int(kernel_size), learning_rate)
 
-        # Train the model for one epoch
-        for i in range(0, len(X_train), batch_size):
-            if i == 0:
-                print("Batch", i, "/", len(X_train), "(", ((i/len(X_train))*100), "% Done)")
-            else:
+        for i in range(epochs1):
+                print("Epoch", i, "/", epochs1)
+                # Train the model for one epoch
+                for a in range(0, len(X_train), batch_size):
+                    if a == 0:
+                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
+                    else:
+                        sys.stdout.write('\033[F\033[K')
+                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
+                    batch_X = X_train[a:a + batch_size]
+                    batch_y = y_train[a:a + batch_size]
+                    history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
                 sys.stdout.write('\033[F\033[K')
-                print("Batch", i, "/", len(X_train), "(", ((i/len(X_train))*100), "% Done)")
-            batch_X = X_train[i:i + batch_size]
-            batch_y = y_train[i:i + batch_size]
-            history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
+                sys.stdout.write('\033[F\033[K')
 
         # Evaluate the model on the test set
         y_pred_test = model.predict(X_test)
-        sys.stdout.write('\033[F\033[K')
         test_reward = get_reward(y_test, y_pred_test)
         sys.stdout.write('\033[F\033[K')
 
@@ -403,21 +407,21 @@ def train_model():
 
     # Define the search space boundaries
     pbounds = {
-        'units': (50, 800),
-        'filters': (50, 800),
+        'units': (50, 300),
+        'filters': (50, 450),
         'kernel_size': (2, 15),
-        'learning_rate': (0.0001, 0.015),
+        'learning_rate': (0.001, 0.015),
     }
 
     # Define Bayesian optimization function
     optimizer = BayesianOptimization(f=optimize_model, pbounds=pbounds)
 
     # Perform Bayesian optimization
-    num_iterations = 10
+    num_iterations = 2
 
     for a in range(num_iterations):
         print(((a/num_iterations)*100), "% Done")
-        optimizer.maximize(init_points=2, n_iter=1)
+        optimizer.maximize(init_points=2, n_iter=2)
         best_params = optimizer.max['params']
         best_reward = optimizer.max['target']
 
@@ -433,7 +437,7 @@ def train_model():
 
     # Load the best model and evaluate it
     print("Training best model")
-    if model_saved == 0:
+    while model_saved == 0:
         model = create_model(int(best_params['units']), int(best_params['filters']), int(best_params['kernel_size']), best_params['learning_rate'])
         for i in range(epochs):
             print("Epoch", i, "/", epochs)
@@ -569,36 +573,19 @@ def evaluate_model():
     rmse_scores = []
     mape_scores = []
     rewards = []
-    for i in range(10):
-        model = load_model("model.h5")
-        print(f"Evaluating model {i+1}/10")
-        X_test, y_test = create_sequences(test_data_norm, timesteps)
-        y_pred = model.predict(X_test)
-        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-        mape = mean_absolute_percentage_error(y_test, y_pred)
-        rmse_scores.append(rmse)
-        mape_scores.append(mape)
-        if mape < 0.05:
-            rewards.append(1 - mape)
-            model.save("model.h5")
-        else:
-            rewards.append(0.3 - mape)
+    model = load_model("model.h5")
+    X_test, y_test = create_sequences(test_data_norm, timesteps)
+    y_pred = model.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    mape = mean_absolute_percentage_error(y_test, y_pred)
+    rmse_scores.append(rmse)
+    mape_scores.append(mape)
+    rewards.append(1 - mape)
 
     # Print results
     print(f"Mean RMSE: {np.mean(rmse_scores)}")
     print(f"Mean MAPE: {np.mean(mape_scores)}")
-    print(f"Total Rewards: {sum(rewards)}")
-
-    # Plot results
-    fig, axs = plt.subplots(3, 1, figsize=(10, 10))
-    axs[0].plot(rmse_scores)
-    axs[0].set_title("RMSE")
-    axs[1].plot(mape_scores)
-    axs[1].set_title("MAPE Score")
-    axs[2].plot(rewards)
-    axs[2].set_title("Rewards")
-    plt.tight_layout()
-    plt.show()
+    print(f"Total Reward: {sum(rewards)}")
 
 
 def fine_tune_model():
@@ -624,14 +611,12 @@ def fine_tune_model():
 
     print("TensorFlow version:", tf.__version__)
 
-    # Define custom Metric
-    def accuracy(y_true, y_pred):
-        acc = tf.reduce_mean(tf.abs((y_true / y_pred) * 100))
-
-        if tf.greater(acc, 100):
-            acc = tf.constant(0, dtype=tf.float32)
-
-        return acc
+    # Define reward function
+    def get_reward(y_true, y_pred):
+        mape = mean_absolute_percentage_error(y_true, y_pred)
+        r2 = r2_score(y_true, y_pred)
+        reward = ((1 - mape) + r2) / 2
+        return reward
 
     # Load data
     data = pd.read_csv("data.csv")
@@ -704,10 +689,6 @@ def fine_tune_model():
     X_train, y_train = create_sequences(train_data_norm, timesteps)
     X_test, y_test = create_sequences(test_data_norm, timesteps)
 
-    # Load model
-    model = load_model("model.h5")
-    model.summary()
-
     # Define reward threshold
     reward_threshold = float(
         input("Enter the reward threshold (0 - 1, 0.9 recommended): ")
@@ -726,41 +707,14 @@ def fine_tune_model():
 
         # Ask the user for confirmation
         user_input = input(
-            f"Are you sure that you want to save the Model, Plot the Rewards and also End the Program? (yes/no): "
+            f"Are you sure that you want to save the Model and also End the Program? (yes/no): "
         )
 
         if user_input.lower() == "yes":
             model.save("model.h5")
-
-            # Plot results
-            fig, axs = plt.subplots(4, 1, figsize=(10, 10))
-            axs[0].plot(mses)
-            axs[0].set_title("MSE")
-            axs[1].plot(mapes)
-            axs[1].set_title("MAPE")
-            axs[2].plot(r2s)
-            axs[2].set_title("R2")
-            axs[3].plot(rewards)
-            axs[3].set_title("Rewards")
-            plt.tight_layout()
-            plt.show()
-
             exit(0)
 
         else:
-            # Plot results
-            fig, axs = plt.subplots(4, 1, figsize=(10, 10))
-            axs[0].plot(mses)
-            axs[0].set_title("MSE")
-            axs[1].plot(mapes)
-            axs[1].set_title("MAPE")
-            axs[2].plot(r2s)
-            axs[2].set_title("R2")
-            axs[3].plot(rewards)
-            axs[3].set_title("Rewards")
-            plt.tight_layout()
-            plt.show()
-
             print("Continuing the Fine-tuning Process")
 
     # Register the signal handler
@@ -777,7 +731,7 @@ def fine_tune_model():
         r2 = r2_score(y_test, y_pred)
 
         # Append rewards
-        reward = ((1 - mape) + r2) / 2
+        reward = get_reward(y_test, y_pred)
         rewards.append(reward)
         mses.append(mse)
         mapes.append(mape)
@@ -796,40 +750,45 @@ def fine_tune_model():
             print("Reward threshold reached!")
             model.save("model.h5")
 
-            # Plot results
-            fig, axs = plt.subplots(4, 1, figsize=(10, 10))
-            axs[0].plot(mses)
-            axs[0].set_title("MSE")
-            axs[1].plot(mapes)
-            axs[1].set_title("MAPE")
-            axs[2].plot(r2s)
-            axs[2].set_title("R2")
-            axs[3].plot(rewards)
-            axs[3].set_title("Rewards")
-            plt.tight_layout()
-            plt.show()
-
             break
         else:
-            # Set up callbacks
-            checkpoint = ModelCheckpoint(
-                "model.h5", save_best_only=True, verbose=1, mode="min"
-            )
-            earlystop = EarlyStopping(monitor="val_loss", patience=5, verbose=1)
+            print("Training Model with 5 Epochs")
+            epochs = 5
+            batch_size = 50
+            for i in range(epochs):
+                print("Epoch", i, "/", epochs)
+                # Train the model for one epoch
+                for a in range(0, len(X_train), batch_size):
+                    if a == 0:
+                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
+                    else:
+                        sys.stdout.write('\033[F\033[K')
+                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
+                    batch_X = X_train[a:a + batch_size]
+                    batch_y = y_train[a:a + batch_size]
+                    history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
 
-            # Fine-tune model)
-            print(
-                "\nReward threshold not reached, Trying to Finetune the Model with 50 Epochs. Will only save best results and will early stop after 5 non-improvements"
-            )
+                # Evaluate the model on the test set
+                y_pred_test = model.predict(X_test)
+                sys.stdout.write('\033[F\033[K')
+                test_reward = get_reward(y_test, y_pred_test)
 
-            history = model.fit(
-                X_test,
-                y_test,
-                epochs=50,
-                batch_size=32,
-                validation_data=(X_test, y_test),
-                callbacks=[checkpoint, earlystop],
-            )
+                print("Test reward:", test_reward)
+
+                if i == 0 and count == 1:
+                    best_reward1 = test_reward
+
+                if test_reward >= best_reward1:
+                    print("Model saved!")
+                    model_saved = 1
+                    best_reward1 = test_reward
+                    model.save("model.h5")
+                
+                if test_reward >= reward_threshold:
+                    print("Model reached reward threshold", test_reward, ". Saving and stopping epochs!")
+                    model_saved = 1
+                    model.save("model.h5")
+                    break
 
 
 def predict_future_data():
