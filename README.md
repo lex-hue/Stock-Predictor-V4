@@ -43,6 +43,7 @@ deactivate # Execute this command to deactivate the virtual environment
 ### 1c. Updating the Repository
 ```
 python SPV4.py --update
+python SPV4.py --install
 ```
 
 ---
@@ -93,7 +94,7 @@ python SPV4.py --fine_tune
 ```
 Before starting the fine-tuning process for the LSTM RL model, the script will now ask you to specify your desired reward threshold. It is recommended to set the threshold at 0.9.
 
-While waiting for the fine-tuning process to finish, it is advisable to stay hydrated by drinking some water, as this process may take some time. Once the fine-tuning is complete, try running the script until it loops only once. In case it doesn't loop once initially, continue rerunning it until it completes at least one loop.
+It is recommended to maintain hydration by drinking water while waiting for the fine-tuning process to complete, as this may take a while. Once the fine-tuning is done, attempt to run the script with a single loop. If the script doesn't loop once initially, keep rerunning it until it completes at least one loop. If the script consistently produces the same result without any improvement, please interrupt it by pressing CTRL + C, answer "yes" to the prompt, and rerun the script.
 
 After the fine-tuning process is fully complete, it is highly recommended to re-evaluate the model's performance.
 

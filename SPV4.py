@@ -77,7 +77,7 @@ def install_dependencies():
             "tensorflow-cpu",
             "matplotlib",
             "ta-lib",
-            "bayesian-optimization",
+            "optuna",
         ]
         total_packages = len(packages)
         progress = 0
@@ -283,7 +283,8 @@ def train_model():
     )
     from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
     from sklearn.metrics import mean_absolute_percentage_error, r2_score
-    from bayes_opt import BayesianOptimization
+    from optuna import create_study, Trial, visualization
+    from optuna.samplers import TPESampler
 
     print("Training the SPV4 model...")
     print("TensorFlow version:", tf.__version__)
@@ -344,59 +345,100 @@ def train_model():
     X_test, y_test = create_sequences(test_data_norm, timesteps)
 
     # Define the Deep RL model
-    def create_model(units, filters, kernel_size, learning_rate):
+    def create_model(trial):
         model = Sequential()
-        model.add(Conv1D(filters=filters, kernel_size=kernel_size, activation="relu"))
+        model.add(
+            Conv1D(
+                filters=trial.suggest_int("filters", 50, 450),
+                kernel_size=trial.suggest_int("kernel_size", 2, 15),
+                activation="relu"
+            )
+        )
         model.add(MaxPooling1D(pool_size=2))
-        model.add(Conv1D(filters=filters // 2, kernel_size=kernel_size // 2, activation="relu"))
-        model.add(LSTM(units=units, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+        model.add(
+            Conv1D(
+                filters=trial.suggest_int("filters_2", 50, 450),
+                kernel_size=trial.suggest_int("kernel_size_2", 1, 15),
+                activation="relu"
+            )
+        )
+        model.add(
+            LSTM(
+                units=trial.suggest_int("units", 50, 300),
+                return_sequences=True,
+                input_shape=(timesteps, X_train.shape[2])
+            )
+        )
         model.add(BatchNormalization())
-        model.add(LSTM(units=units, return_sequences=True))
+        model.add(
+            LSTM(
+                units=trial.suggest_int("units_2", 50, 300),
+                return_sequences=True
+            )
+        )
         model.add(BatchNormalization())
-        model.add(Dense(units=units))
+        model.add(Dense(units=trial.suggest_int("units_3", 50, 300)))
         model.add(BatchNormalization())
-        model.add(TimeDistributed(Dense(units=units)))
+        model.add(TimeDistributed(Dense(units=trial.suggest_int("units_4", 50, 300))))
         model.add(BatchNormalization())
-        model.add(LSTM(units=units // 2, return_sequences=True))
+        model.add(
+            LSTM(
+                units=trial.suggest_int("units_5", 25, 150),
+                return_sequences=True
+            )
+        )
         model.add(BatchNormalization())
-        model.add(LSTM(units=units // 2, return_sequences=True))
+        model.add(
+            LSTM(
+                units=trial.suggest_int("units_6", 25, 150),
+                return_sequences=True
+            )
+        )
         model.add(BatchNormalization())
-        model.add(TimeDistributed(Dense(units=units // 2)))
+        model.add(TimeDistributed(Dense(units=trial.suggest_int("units_7", 25, 150))))
         model.add(BatchNormalization())
-        model.add(LSTM(units=units // 4))
+        model.add(LSTM(units=trial.suggest_int("units_8", 12, 75)))
         model.add(BatchNormalization())
         model.add(Dense(units=1))
 
         # Define the RL optimizer and compile the model
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=trial.suggest_float("learning_rate", 0.001, 0.015))
         model.compile(optimizer=optimizer, loss="mse")
 
         return model
 
     # Define RL training loop
-    epochs = 20
+    epochs = 10
     epochs1 = 3
     batch_size = 50
     best_reward = None
-    min_reward_threshold = float(input("Enter the minimum reward threshold (e.g., 0.7): "))
 
-    def optimize_model(units, filters, kernel_size, learning_rate):
-        model = create_model(int(units), int(filters), int(kernel_size), learning_rate)
+    def optimize_model(trial: Trial):
+        model = create_model(trial)
 
         for i in range(epochs1):
-                print("Epoch", i, "/", epochs1)
-                # Train the model for one epoch
-                for a in range(0, len(X_train), batch_size):
-                    if a == 0:
-                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
-                    else:
-                        sys.stdout.write('\033[F\033[K')
-                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
-                    batch_X = X_train[a:a + batch_size]
-                    batch_y = y_train[a:a + batch_size]
-                    history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
-                sys.stdout.write('\033[F\033[K')
-                sys.stdout.write('\033[F\033[K')
+            print("Epoch", i+1, "/", epochs1)
+            # Train the model for one epoch
+            for a in range(0, len(X_train), batch_size):
+                if a == 0:
+                    print(
+                        "Batch", a+1, "/", len(X_train),
+                        "(", ((a/len(X_train))*100), "% Done)"
+                    )
+                else:
+                    sys.stdout.write('\033[F\033[K')
+                    print(
+                        "Batch", a+1, "/", len(X_train),
+                        "(", ((a/len(X_train))*100), "% Done)"
+                    )
+                batch_X = X_train[a:a + batch_size]
+                batch_y = y_train[a:a + batch_size]
+                history = model.fit(
+                    batch_X, batch_y,
+                    batch_size=batch_size, epochs=1, verbose=0
+                )
+            sys.stdout.write('\033[F\033[K')
+            sys.stdout.write('\033[F\033[K')
 
         # Evaluate the model on the test set
         y_pred_test = model.predict(X_test)
@@ -405,76 +447,58 @@ def train_model():
 
         return test_reward
 
-    # Define the search space boundaries
-    pbounds = {
-        'units': (50, 300),
-        'filters': (50, 450),
-        'kernel_size': (2, 15),
-        'learning_rate': (0.001, 0.015),
-    }
+    # Define the search space boundaries and create Optuna study
+    sampler = TPESampler(seed=42)
+    study = create_study(sampler=sampler, direction="maximize")
+    study.optimize(optimize_model, n_trials=5)
 
-    # Define Bayesian optimization function
-    optimizer = BayesianOptimization(f=optimize_model, pbounds=pbounds)
-
-    # Perform Bayesian optimization
-    num_iterations = 2
-
-    for a in range(num_iterations):
-        print(((a/num_iterations)*100), "% Done")
-        optimizer.maximize(init_points=2, n_iter=2)
-        best_params = optimizer.max['params']
-        best_reward = optimizer.max['target']
-
-        # Check if the minimum reward threshold is reached
-        if best_reward >= min_reward_threshold:
-            break
+    # Get best parameters and reward
+    best_trial = study.best_trial
+    best_params = best_trial.params
+    best_reward = best_trial.value
 
     print("\nBest reward:", best_reward)
     print("Best parameters:", best_params)
 
-    best_reward1 = None
-    model_saved = 0
-
     # Load the best model and evaluate it
-    print("Training best model")
-    while model_saved == 0:
-        model = create_model(int(best_params['units']), int(best_params['filters']), int(best_params['kernel_size']), best_params['learning_rate'])
-        for i in range(epochs):
-            print("Epoch", i, "/", epochs)
-            # Train the model for one epoch
-            for a in range(0, len(X_train), batch_size):
-                if a == 0:
-                    print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
-                else:
-                    sys.stdout.write('\033[F\033[K')
-                    print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
-                batch_X = X_train[a:a + batch_size]
-                batch_y = y_train[a:a + batch_size]
-                history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
+    model = create_model(best_trial)
+    for i in range(epochs):
+        print("Epoch", i+1, "/", epochs)
+        # Train the model for one epoch
+        for a in range(0, len(X_train), batch_size):
+            if a == 0:
+                print(
+                    "Batch", a+1, "/", len(X_train),
+                    "(", ((a/len(X_train))*100), "% Done)"
+                )
+            else:
+                sys.stdout.write('\033[F\033[K')
+                print(
+                    "Batch", a+1, "/", len(X_train),
+                    "(", ((a/len(X_train))*100), "% Done)"
+                )
+            batch_X = X_train[a:a + batch_size]
+            batch_y = y_train[a:a + batch_size]
+            history = model.fit(
+                batch_X, batch_y,
+                batch_size=batch_size, epochs=1, verbose=0
+            )
 
-            # Evaluate the model on the test set
-            y_pred_test = model.predict(X_test)
-            sys.stdout.write('\033[F\033[K')
-            test_reward = get_reward(y_test, y_pred_test)
+        # Evaluate the model on the test set
+        y_pred_test = model.predict(X_test)
+        sys.stdout.write('\033[F\033[K')
+        test_reward = get_reward(y_test, y_pred_test)
 
-            print("Test reward:", test_reward)
+        print("Test reward:", test_reward)
 
-            if i == 0:
-                best_reward1 = test_reward
+        if i == 0:
+            best_reward1 = test_reward
 
-            if test_reward >= best_reward1 and test_reward >= best_reward:
-                print("Model saved!")
-                model_saved = 1
-                best_reward1 = test_reward
-                model.save("model.h5")
-            
-            if test_reward >= min_reward_threshold:
-                print("Model reached reward threshold", test_reward, ". Saving and stopping epochs!")
-                model_saved = 1
-                model.save("model.h5")
-                break
+        if test_reward >= best_reward1:
+            print("Model saved!")
+            model.save("model.h5")
 
-    else:
+    if i == epochs - 1:
         model = load_model("model.h5")
         y_pred_test = model.predict(X_test)
         test_reward = get_reward(y_test, y_pred_test)
@@ -707,11 +731,10 @@ def fine_tune_model():
 
         # Ask the user for confirmation
         user_input = input(
-            f"Are you sure that you want to save the Model and also End the Program? (yes/no): "
+            f"Are you sure that you want to End the Program? (yes/no): "
         )
 
         if user_input.lower() == "yes":
-            model.save("model.h5")
             exit(0)
 
         else:
