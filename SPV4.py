@@ -1,83 +1,58 @@
 import argparse
 
+def cpugpu():
+    import tensorflow as tf
+    # Check if GPU is available and print the list of GPUs
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        for gpu in gpus:
+            print(f"Found GPU: {gpu}")
+    else:
+        print("No GPU devices found.")
+    
+    if gpus:
+        try:
+            # Enable memory growth to avoid allocating all GPU memory at once
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+
+            # Specify the GPU device to use (e.g., use the first GPU)
+            tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+            
+            # Test TensorFlow with a simple computation on the GPU
+            with tf.device('/GPU:0'):
+                a = tf.constant([1.0, 2.0, 3.0])
+                b = tf.constant([4.0, 5.0, 6.0])
+                c = a * b
+
+            print("GPU is available and TensorFlow is using it.")
+            print("Result of the computation on GPU:", c.numpy())
+        except RuntimeError as e:
+            print("Error while setting up GPU:", e)
+    else:
+        print("No GPU devices found, TensorFlow will use CPU.")
+
 def install_dependencies():
     import os
+    import platform
     import subprocess
     import time
-    import urllib.request
-    import tarfile
     import sys
 
-    def download_file(url, filename):
-        print(f"Downloading {filename}...")
-        start_time = time.time()
-        response = urllib.request.urlopen(url)
-        file_size = int(response.headers["Content-Length"])
-        downloaded = 0
-        block_size = 8192
-        with open(filename, "wb") as file:
-            while True:
-                buffer = response.read(block_size)
-                if not buffer:
-                    break
-                file.write(buffer)
-                downloaded += len(buffer)
-                progress = downloaded / file_size * 100
-                print(f"Progress: {progress:.2f}%", end="\r")
-        print()
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"Download complete: {filename} (Time: {elapsed_time:.2f} seconds)")
-
-    def extract_tar_gz(filename):
-        print(f"Extracting {filename}...")
-        start_time = time.time()
-        with tarfile.open(filename, "r:gz") as tar:
-            file_count = len(tar.getmembers())
-            extracted = 0
-            for member in tar:
-                tar.extract(member)
-                extracted += 1
-                progress = extracted / file_count * 100
-                print(f"Progress: {progress:.2f}%", end="\r")
-        print()
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"Extraction complete: {filename} (Time: {elapsed_time:.2f} seconds)")
-
-    def install_ta_lib():
-        print("Installing TA-Lib...")
-        start_time = time.time()
-        os.chdir("ta-lib")
-        subprocess.run(["./configure", "--prefix=/usr"], check=True)
-        subprocess.run(
-            ["make", "-s"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        subprocess.run(
-            ["sudo", "make", "-s", "install"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        os.chdir("..")
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"TA-Lib installation complete (Time: {elapsed_time:.2f} seconds)")
+    print("\n--------------------------------------")
+    system = platform.system()    
+    print("OS: ", system)
+    print("--------------------------------------\n")
 
     def install_dependencies():
         print("Installing Python dependencies...")
         start_time = time.time()
         packages = [
             "pandas",
+            "ta",
             "numpy",
             "scikit-learn",
-            "tensorflow-cpu",
             "matplotlib",
-            "ta-lib",
-            "optuna",
         ]
         total_packages = len(packages)
         progress = 0
@@ -96,32 +71,38 @@ def install_dependencies():
     if __name__ == "__main__":
         print("Welcome to the SPV4 installation!")
         print("This script will install all the necessary dependencies.\n")
+        print("Prior to proceeding, ensure that you have the necessary programs installed to enable TensorFlow to utilize your GPU or GPUs. If you haven't done so yet, you may press CTRL + C now to halt the process.")
 
-        time.sleep(2)
+        time.sleep(5)
 
-        download_file(
-            "https://deac-fra.dl.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz",
-            "ta-lib-0.4.0-src.tar.gz",
-        )
+        def get_user_choice():
+            while True:
+                print("Select the version of TensorFlow you want to install:")
+                print("1. TensorFlow with CPU support")
+                print("2. TensorFlow with GPU support")
+                choice = input("Enter 1 or 2 to make your selection: ")
+                if choice in ["1", "2"]:
+                    return choice
+                print("Invalid choice. Please enter 1 or 2.")
 
-        print("Extraction process will begin shortly...")
-        print("Please wait while the files are being extracted.")
+        def install_tf(choice):
+            if choice == "1":
+                print("Installing TensorFlow with CPU support...")
+                subprocess.run(["pip", "install", "tensorflow-cpu"])
+                print("Installation of TensorFlow with CPU support completed.")
+            elif choice == "2":
+                print("Installing TensorFlow with GPU support...")
+                subprocess.run(["pip", "install", "tensorflow"])
+                print("Installation of TensorFlow with GPU support completed.")
 
-        extract_tar_gz("ta-lib-0.4.0-src.tar.gz")
-
-        print("Extraction process completed successfully!\n")
-        print("TA-Lib installation will now begin.")
-
-        install_ta_lib()
-
-        print("TA-Lib installation completed successfully!\n")
-
-        print("Python dependencies installation will now begin.")
+        print("\nPython dependencies installation will now begin.")
 
         install_dependencies()
 
         print("Python dependencies installation completed successfully!\n")
-        print("SPV4 installation completed successfully!")
+        
+        user_choice = get_user_choice()
+        install_tf(user_choice)
 
         print("Creating 'data' directory...")
         os.makedirs("data", exist_ok=True)
@@ -137,7 +118,8 @@ def prepare_data():
     print("Preprocessing and preparing the CSV data...")
     import os
     import pandas as pd
-    import talib
+    import numpy as np
+    import ta
     import matplotlib.pyplot as plt
 
     # List all CSV files in the "data" folder
@@ -159,24 +141,84 @@ def prepare_data():
     # Preprocess the selected CSV file
     df = pd.read_csv(selected_file_path)
 
-    df["SMA"] = talib.SMA(df["Close"], timeperiod=14)
-    df["RSI"] = talib.RSI(df["Close"], timeperiod=14)
-    df["MACD"], _, _ = talib.MACD(
-        df["Close"], fastperiod=12, slowperiod=26, signalperiod=9
-    )
-    df["upper_band"], df["middle_band"], df["lower_band"] = talib.BBANDS(
-        df["Close"], timeperiod=20
-    )
-    df["aroon_up"], df["aroon_down"] = talib.AROON(df["High"], df["Low"], timeperiod=25)
-    df["kicking"] = talib.CDLKICKINGBYLENGTH(
-        df["Open"], df["High"], df["Low"], df["Close"]
-    )
+    # Calculate indicators using ta library
+    df["SMA"] = ta.trend.sma_indicator(df["Close"], window=14)
+    df["RSI"] = ta.momentum.rsi(df["Close"], window=14)
+    df["MACD"] = ta.trend.macd_diff(df["Close"], window_slow=26, window_fast=12, window_sign=9)
+    df_bollinger = ta.volatility.BollingerBands(df["Close"], window=20)
+    df["upper_band"] = df_bollinger.bollinger_hband()
+    df["middle_band"] = df_bollinger.bollinger_mavg()
+    df["lower_band"] = df_bollinger.bollinger_lband()
+    df["aroon_up"] = ta.trend.aroon_up(df["Close"], window=25)
+    df["aroon_down"] = ta.trend.aroon_down(df["Close"], window=25)
+    
+    open_prices = df["Open"]
+    close_prices = df["Close"]
 
-    df["ATR"] = talib.ATR(df["High"], df["Low"], df["Close"], timeperiod=14)
+    # Calculate the "Kicking" pattern feature using NumPy
+    kicking_pattern = np.zeros_like(open_prices)
+
+    # Loop through the data and check for "Kicking" pattern
+    for i in range(1, len(open_prices)):
+        if open_prices[i] < open_prices[i-1] and \
+        open_prices[i] > close_prices[i-1] and \
+        close_prices[i] > open_prices[i-1] and \
+        close_prices[i] < close_prices[i-1] and \
+        open_prices[i] - close_prices[i] > open_prices[i-1] - close_prices[i-1]:
+            kicking_pattern[i] = 100  # Some positive value to indicate the pattern
+
+    # Assign the kicking_pattern as a new column to the DataFrame
+    df["kicking"] = kicking_pattern
+
+    # Calculate ATR and SuperTrend
+    def calculate_atr(high, low, close, window=14):
+        true_ranges = np.maximum.reduce([high - low, np.abs(high - close.shift()), np.abs(low - close.shift())])
+        atr = np.zeros_like(high)
+        atr[window - 1] = np.mean(true_ranges[:window])
+        for i in range(window, len(high)):
+            atr[i] = (atr[i - 1] * (window - 1) + true_ranges[i]) / window
+        return atr
+
+    df["ATR"] = calculate_atr(df["High"], df["Low"], df["Close"], window=14)
+
+    # Calculate Supertrend signals with reduced sensitivity and using all indicators
     df["upper_band_supertrend"] = df["High"] - (df["ATR"] * 2)
     df["lower_band_supertrend"] = df["Low"] + (df["ATR"] * 2)
-    df["in_uptrend"] = df["Close"] > df["lower_band_supertrend"]
-    df["supertrend_signal"] = df["in_uptrend"].diff().fillna(0)
+
+    # Define conditions for uptrend and downtrend based on sensitivity to indicators
+    uptrend_conditions = [
+        (df["Close"] > df["lower_band_supertrend"]),
+        (df["Close"] > df["SMA"]),
+        (df["Close"] > df["middle_band"]),
+        (df["Close"] > df["MACD"]),
+        (df["RSI"] > 50),
+        (df["aroon_up"] > df["aroon_down"]),
+        (df["kicking"] == 1),  # Assuming "kicking" is an indicator where 1 indicates an uptrend.
+        (df["Close"] > df["upper_band_supertrend"])
+    ]
+
+    downtrend_conditions = [
+        (df["Close"] < df["upper_band_supertrend"]),
+        (df["Close"] < df["SMA"]),
+        (df["Close"] < df["middle_band"]),
+        (df["Close"] < df["MACD"]),
+        (df["RSI"] < 50),
+        (df["aroon_up"] < df["aroon_down"]),
+        (df["kicking"] == -1),  # Assuming "kicking" is an indicator where -1 indicates a downtrend.
+        (df["Close"] < df["lower_band_supertrend"])
+    ]
+
+    # Set initial signal values to 0
+    df["supertrend_signal"] = 0
+
+    # Update signals based on sensitivity to indicators
+    df.loc[np.any(uptrend_conditions, axis=0), "supertrend_signal"] = 1
+    df.loc[np.any(downtrend_conditions, axis=0), "supertrend_signal"] = -1
+
+    # Remove consecutive signals in the same direction (less sensitive)
+    signal_changes = df["supertrend_signal"].diff().fillna(0)
+    consecutive_mask = (signal_changes == 0) & (signal_changes.shift(-1) == 0)
+    df.loc[consecutive_mask, "supertrend_signal"] = 0
 
     # Replace "False" with 0 and "True" with 1
     df = df.replace({False: 0, True: 1})
@@ -261,49 +303,40 @@ def prepare_data():
 
     plt.show()
 
-
 def train_model():
     import os
-    import sys
-
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
     import pandas as pd
     import numpy as np
-    import tensorflow as tf
     from sklearn.preprocessing import MinMaxScaler
+    import tensorflow as tf
     from tensorflow.keras.models import Sequential, load_model
-    from tensorflow.keras.layers import (
-        LSTM,
-        Dense,
-        BatchNormalization,
-        Conv1D,
-        MaxPooling1D,
-        TimeDistributed,
-    )
+    from tensorflow.keras.layers import LSTM, Dense, Dropout
+    from sklearn.metrics import mean_absolute_percentage_error
     from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-    from sklearn.metrics import mean_absolute_percentage_error, r2_score
-    from optuna import create_study, Trial, visualization
-    from optuna.samplers import TPESampler
+    import sys
 
-    print("Training the SPV4 model...")
     print("TensorFlow version:", tf.__version__)
+
+    cpugpu()
 
     # Define reward function
     def get_reward(y_true, y_pred):
         mape = mean_absolute_percentage_error(y_true, y_pred)
-        r2 = r2_score(y_true, y_pred)
-        reward = ((1 - mape) + r2) / 2
+        reward = (1 - mape)
         return reward
 
     # Load data
     data = pd.read_csv("data.csv")
 
+    # Split data into train and test sets
+    train_data = data.iloc[:int(0.8*len(data))]
+    test_data = data.iloc[int(0.8*len(data)):]
+
     # Normalize data
     scaler = MinMaxScaler()
-    data_norm = scaler.fit_transform(
-        data[
-            [
+    train_data_norm = scaler.fit_transform(train_data[[
                 "Close",
                 "Adj Close",
                 "Volume",
@@ -320,14 +353,26 @@ def train_model():
                 "aroon_down",
                 "kicking",
                 "upper_band_supertrend",
-                "lower_band_supertrend",
-            ]
-        ]
-    )
-
-    # Split data into train and test sets
-    train_data_norm = data_norm[: int(0.8 * len(data))]
-    test_data_norm = data_norm[int(0.8 * len(data)):]
+                "lower_band_supertrend",]])
+    
+    test_data_norm = scaler.transform(test_data[[
+                "Close",
+                "Adj Close",
+                "Volume",
+                "High",
+                "Low",
+                "SMA",
+                "MACD",
+                "upper_band",
+                "middle_band",
+                "lower_band",
+                "supertrend_signal",
+                "RSI",
+                "aroon_up",
+                "aroon_down",
+                "kicking",
+                "upper_band_supertrend",
+                "lower_band_supertrend",]])
 
     # Define time steps
     timesteps = 100
@@ -337,131 +382,40 @@ def train_model():
         X = []
         y = []
         for i in range(timesteps, len(data)):
-            X.append(data[i - timesteps : i])
-            y.append(data[i, 0])
+            X.append(data[i-timesteps:i])
+            y.append(data[i, 3])
         return np.array(X), np.array(y)
 
     X_train, y_train = create_sequences(train_data_norm, timesteps)
     X_test, y_test = create_sequences(test_data_norm, timesteps)
 
-    # Define the Deep RL model
-    def create_model(trial):
-        model = Sequential()
-        model.add(
-            Conv1D(
-                filters=trial.suggest_int("filters", 50, 450),
-                kernel_size=trial.suggest_int("kernel_size", 2, 15),
-                activation="relu"
-            )
-        )
-        model.add(MaxPooling1D(pool_size=2))
-        model.add(
-            Conv1D(
-                filters=trial.suggest_int("filters_2", 50, 450),
-                kernel_size=trial.suggest_int("kernel_size_2", 1, 15),
-                activation="relu"
-            )
-        )
-        model.add(
-            LSTM(
-                units=trial.suggest_int("units", 50, 300),
-                return_sequences=True,
-                input_shape=(timesteps, X_train.shape[2])
-            )
-        )
-        model.add(BatchNormalization())
-        model.add(
-            LSTM(
-                units=trial.suggest_int("units_2", 50, 300),
-                return_sequences=True
-            )
-        )
-        model.add(BatchNormalization())
-        model.add(Dense(units=trial.suggest_int("units_3", 50, 300)))
-        model.add(BatchNormalization())
-        model.add(TimeDistributed(Dense(units=trial.suggest_int("units_4", 50, 300))))
-        model.add(BatchNormalization())
-        model.add(
-            LSTM(
-                units=trial.suggest_int("units_5", 25, 150),
-                return_sequences=True
-            )
-        )
-        model.add(BatchNormalization())
-        model.add(
-            LSTM(
-                units=trial.suggest_int("units_6", 25, 150),
-                return_sequences=True
-            )
-        )
-        model.add(BatchNormalization())
-        model.add(TimeDistributed(Dense(units=trial.suggest_int("units_7", 25, 150))))
-        model.add(BatchNormalization())
-        model.add(LSTM(units=trial.suggest_int("units_8", 12, 75)))
-        model.add(BatchNormalization())
-        model.add(Dense(units=1))
+    # Build model
+    model = Sequential()
+    model.add(LSTM(units=300, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=300, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=250, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=200, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=150))
+    model.add(Dropout(0.2))
+    model.add(Dense(units=1))
 
-        # Define the RL optimizer and compile the model
-        optimizer = tf.keras.optimizers.Adam(learning_rate=trial.suggest_float("learning_rate", 0.001, 0.015))
-        model.compile(optimizer=optimizer, loss="mse")
+    model.summary()
 
-        return model
+    # Compile model
+    model.compile(optimizer='adam', loss='mean_squared_error')
 
-    # Define RL training loop
+    # Define callbacks
+    filepath="model.h5"
+    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+
     epochs = 10
-    epochs1 = 3
     batch_size = 50
-    best_reward = None
 
-    def optimize_model(trial: Trial):
-        model = create_model(trial)
-
-        for i in range(epochs1):
-            print("Epoch", i+1, "/", epochs1)
-            # Train the model for one epoch
-            for a in range(0, len(X_train), batch_size):
-                if a == 0:
-                    print(
-                        "Batch", a+1, "/", len(X_train),
-                        "(", ((a/len(X_train))*100), "% Done)"
-                    )
-                else:
-                    sys.stdout.write('\033[F\033[K')
-                    print(
-                        "Batch", a+1, "/", len(X_train),
-                        "(", ((a/len(X_train))*100), "% Done)"
-                    )
-                batch_X = X_train[a:a + batch_size]
-                batch_y = y_train[a:a + batch_size]
-                history = model.fit(
-                    batch_X, batch_y,
-                    batch_size=batch_size, epochs=1, verbose=0
-                )
-            sys.stdout.write('\033[F\033[K')
-            sys.stdout.write('\033[F\033[K')
-
-        # Evaluate the model on the test set
-        y_pred_test = model.predict(X_test)
-        test_reward = get_reward(y_test, y_pred_test)
-        sys.stdout.write('\033[F\033[K')
-
-        return test_reward
-
-    # Define the search space boundaries and create Optuna study
-    sampler = TPESampler(seed=42)
-    study = create_study(sampler=sampler, direction="maximize")
-    study.optimize(optimize_model, n_trials=5)
-
-    # Get best parameters and reward
-    best_trial = study.best_trial
-    best_params = best_trial.params
-    best_reward = best_trial.value
-
-    print("\nBest reward:", best_reward)
-    print("Best parameters:", best_params)
-
-    # Load the best model and evaluate it
-    model = create_model(best_trial)
     for i in range(epochs):
         print("Epoch", i+1, "/", epochs)
         # Train the model for one epoch
@@ -522,6 +476,8 @@ def evaluate_model():
     import matplotlib.pyplot as plt
 
     print("TensorFlow version:", tf.__version__)
+
+    cpugpu()
 
     # Load data
     data = pd.read_csv("data.csv")
@@ -634,6 +590,8 @@ def fine_tune_model():
     from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
     print("TensorFlow version:", tf.__version__)
+
+    cpugpu()
 
     # Define reward function
     def get_reward(y_true, y_pred):
@@ -825,6 +783,8 @@ def predict_future_data():
     from sklearn.preprocessing import MinMaxScaler
     from tensorflow.keras.models import load_model
     import matplotlib.pyplot as plt
+
+    cpugpu()
 
     # Load data
     data = pd.read_csv("data.csv")

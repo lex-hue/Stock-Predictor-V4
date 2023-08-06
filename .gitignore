@@ -7,6 +7,11 @@ __pycache__/
 data/
 commit_sha_online.sha
 
+# Windows
+Include/
+Lib/
+Scripts/*
+
 # Talib
 ta-lib/
 ta-lib*
