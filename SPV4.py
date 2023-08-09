@@ -409,7 +409,7 @@ def train_model():
     model.compile(optimizer='adam', loss='mse')
 
     # Define callbacks
-    filepath="model.h5"
+    filepath="model.keras"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
@@ -417,6 +417,8 @@ def train_model():
     batch_size = 50
 
     for i in range(epochs):
+        if i == 1:
+            model = load_model("model.keras")
         print("Epoch", i+1, "/", epochs)
         # Train the model for one epoch
         for a in range(0, len(X_train), batch_size):
@@ -451,10 +453,10 @@ def train_model():
         if test_reward >= best_reward1:
             best_reward1 = test_reward
             print("Model saved!")
-            model.save("model.h5")
+            model.save("model.keras")
 
     if i == epochs - 1:
-        model = load_model("model.h5")
+        model = load_model("model.keras")
         y_pred_test = model.predict(X_test)
         test_reward = get_reward(y_test, y_pred_test)
         test_loss = model.evaluate(X_test, y_test)
@@ -548,13 +550,13 @@ def evaluate_model():
         return np.array(X), np.array(y)
 
     # Load model
-    model = load_model("model.h5")
+    model = load_model("model.keras")
 
     # Evaluate model
     rmse_scores = []
     mape_scores = []
     rewards = []
-    model = load_model("model.h5")
+    model = load_model("model.keras")
     X_test, y_test = create_sequences(test_data_norm, timesteps)
     y_pred = model.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
@@ -704,7 +706,7 @@ def fine_tune_model():
 
     while True:
         # Load model
-        model = load_model("model.h5")
+        model = load_model("model.keras")
         print("\nEvaluating Model")
         # Evaluate model
         y_pred = model.predict(X_test)
@@ -730,7 +732,7 @@ def fine_tune_model():
         # Check if reward threshold is reached
         if len(rewards) >= 1 and sum(rewards[-1:]) >= reward_threshold:
             print("Reward threshold reached!")
-            model.save("model.h5")
+            model.save("model.keras")
 
             break
         else:
@@ -764,12 +766,12 @@ def fine_tune_model():
                     print("Model saved!")
                     model_saved = 1
                     best_reward1 = test_reward
-                    model.save("model.h5")
+                    model.save("model.keras")
                 
                 if test_reward >= reward_threshold:
                     print("Model reached reward threshold", test_reward, ". Saving and stopping epochs!")
                     model_saved = 1
-                    model.save("model.h5")
+                    model.save("model.keras")
                     break
 
 
@@ -829,7 +831,7 @@ def predict_future_data():
     X_data = create_sequences(data_norm, timesteps)
 
     # Load model
-    model = load_model("model.h5")
+    model = load_model("model.keras")
     model.summary()
 
     num_predictions = 30
