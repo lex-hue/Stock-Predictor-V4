@@ -449,6 +449,7 @@ def train_model():
             best_reward1 = test_reward
 
         if test_reward >= best_reward1:
+            best_reward1 = test_reward
             print("Model saved!")
             model.save("model.h5")
 
