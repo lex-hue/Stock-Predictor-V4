@@ -7,8 +7,7 @@
 
 - [Stock-Predictor-V4](#stock-predictor-v4)
   - [1a. Installation](#1a-installation)
-  - [1b. Installation with Virtual Environment (venv) in Python](#1b-installation-with-virtual-environment-venv-in-python)
-  - [1c. Updating the Repository](#1c-updating-the-repository)
+  - [1b. Updating the Repository](#1b-updating-the-repository)
   - [2. Data Preparation](#2-data-preparation)
   - [3. Training the LSTM RL Model](#3-training-the-lstm-rl-model)
   - [4. Evaluating the Model](#4-evaluating-the-model)
@@ -27,20 +26,7 @@ python SPV4.py --install
 
 ---
 
-## 1b. Installation with Virtual Environment (venv) in Python
-```
-git clone https://github.com/Qerim-iseni09/Stock-Predictor-V4.git
-pip install venv
-python -m venv Stock-Predictor-V4
-cd Stock-Predictor-V4
-source bin/activate # Execute before using any script
-python SPV4.py --install
-deactivate # Execute this command to deactivate the virtual environment
-```
-
----
-
-### 1c. Updating the Repository
+### 1b. Updating the Repository
 ```
 python SPV4.py --update
 python SPV4.py --install
