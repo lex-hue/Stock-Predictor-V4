@@ -406,7 +406,7 @@ def train_model():
     model.summary()
 
     # Compile model
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.compile(optimizer='adam', loss='mse')
 
     # Define callbacks
     filepath="model.h5"
