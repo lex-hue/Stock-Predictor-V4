@@ -53,7 +53,7 @@ def install_dependencies():
             "numpy",
             "scikit-learn",
             "matplotlib",
-            "tensorflow-cpu"
+            "tensorflow"
         ]
         total_packages = len(packages)
         progress = 0
