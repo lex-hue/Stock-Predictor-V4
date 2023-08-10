@@ -389,7 +389,7 @@ def train_model():
 
     epochs = 10
     batch_size = 50
-    batch_size1 = (batch_size//2)
+    batch_size1 = (batch_size//5)
 
     for i in range(epochs):
         if i == 1:
@@ -410,10 +410,12 @@ def train_model():
                 )
             batch_X = X_train[a:a + batch_size]
             batch_y = y_train[a:a + batch_size]
+            batch_test_X = X_test[a:a + batch_size]
+            batch_test_y = y_test[a:a + batch_size]
 
             history = model.fit(
                 batch_X, batch_y,
-                batch_size=batch_size1, epochs=1, verbose=0
+                batch_size=batch_size1, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
             )
 
         # Evaluate the model on the test set
@@ -692,6 +694,7 @@ def fine_tune_model():
 
         # Append rewards
         reward = get_reward(y_test, y_pred)
+        best_reward1 = reward
         rewards.append(reward)
         mses.append(mse)
         mapes.append(mape)
@@ -724,9 +727,15 @@ def fine_tune_model():
                     else:
                         sys.stdout.write('\033[F\033[K')
                         print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
-                    batch_X = X_train[a:a + batch_size]
-                    batch_y = y_train[a:a + batch_size]
-                    history = model.fit(batch_X, batch_y, batch_size=batch_size, epochs=1, verbose=0)
+                        batch_X = X_train[a:a + batch_size]
+                        batch_y = y_train[a:a + batch_size]
+                        batch_test_X = X_test[a:a + batch_size]
+                        batch_test_y = y_test[a:a + batch_size]
+            
+                        history = model.fit(
+                            batch_X, batch_y,
+                            batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
+                        )
 
                 # Evaluate the model on the test set
                 y_pred_test = model.predict(X_test)
@@ -734,9 +743,6 @@ def fine_tune_model():
                 test_reward = get_reward(y_test, y_pred_test)
 
                 print("Test reward:", test_reward)
-
-                if i == 0 and count == 1:
-                    best_reward1 = test_reward
 
                 if test_reward >= best_reward1:
                     print("Model saved!")
