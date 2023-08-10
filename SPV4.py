@@ -53,6 +53,7 @@ def install_dependencies():
             "numpy",
             "scikit-learn",
             "matplotlib",
+
         ]
         total_packages = len(packages)
         progress = 0
@@ -60,7 +61,7 @@ def install_dependencies():
             progress += 1
             print(f"Installing {package}... ({progress}/{total_packages})")
             subprocess.run(
-                [sys.executable, "-m", "pip", "install", "--quiet", package], check=True
+                [sys.executable, "-m", "pip", "install", package], check=True
             )
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -75,34 +76,9 @@ def install_dependencies():
 
         time.sleep(5)
 
-        def get_user_choice():
-            while True:
-                print("Select the version of TensorFlow you want to install:")
-                print("1. TensorFlow with CPU support")
-                print("2. TensorFlow with GPU support")
-                choice = input("Enter 1 or 2 to make your selection: ")
-                if choice in ["1", "2"]:
-                    return choice
-                print("Invalid choice. Please enter 1 or 2.")
-
-        def install_tf(choice):
-            if choice == "1":
-                print("Installing TensorFlow with CPU support...")
-                subprocess.run(["pip", "install", "tensorflow-cpu"])
-                print("Installation of TensorFlow with CPU support completed.")
-            elif choice == "2":
-                print("Installing TensorFlow with GPU support...")
-                subprocess.run(["pip", "install", "tensorflow"])
-                print("Installation of TensorFlow with GPU support completed.")
-
         print("\nPython dependencies installation will now begin.")
 
         install_dependencies()
-
-        print("Python dependencies installation completed successfully!\n")
-        
-        user_choice = get_user_choice()
-        install_tf(user_choice)
 
         print("Creating 'data' directory...")
         os.makedirs("data", exist_ok=True)
@@ -410,11 +386,10 @@ def train_model():
 
     # Define callbacks
     filepath="model.keras"
-    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
     epochs = 10
     batch_size = 50
+    batch_size1 = (batch_size//2)
 
     for i in range(epochs):
         if i == 1:
@@ -435,9 +410,10 @@ def train_model():
                 )
             batch_X = X_train[a:a + batch_size]
             batch_y = y_train[a:a + batch_size]
+
             history = model.fit(
                 batch_X, batch_y,
-                batch_size=batch_size, epochs=1, verbose=0
+                batch_size=batch_size1, epochs=1, verbose=0
             )
 
         # Evaluate the model on the test set
@@ -764,13 +740,11 @@ def fine_tune_model():
 
                 if test_reward >= best_reward1:
                     print("Model saved!")
-                    model_saved = 1
                     best_reward1 = test_reward
                     model.save("model.keras")
                 
                 if test_reward >= reward_threshold:
                     print("Model reached reward threshold", test_reward, ". Saving and stopping epochs!")
-                    model_saved = 1
                     model.save("model.keras")
                     break
 

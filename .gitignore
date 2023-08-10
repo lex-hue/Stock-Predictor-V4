@@ -20,6 +20,7 @@ ta-lib*
 data.csv
 prepared.png
 model.h5
+model.keras
 *.csv
 
 # C extensions
