@@ -3,6 +3,10 @@
 ![stockpredictor ai logo](https://user-images.githubusercontent.com/53996451/224323224-3ec1cd20-747c-42ad-9fb1-ba6e0ecb358b.png)
 
 ---
+
+## [SPV4](https://colab.research.google.com/drive/1mG_7D3Ei2cacCadFleVVHOMc9VV_jbTX?usp=sharing) &nbsp;&nbsp; [![Open in Colab][Colab Badge]]
+
+---
 # Content Table
 
 - [Stock-Predictor-V4](#stock-predictor-v4)
