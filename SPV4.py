@@ -390,8 +390,8 @@ def train_model():
     epochs = 10
     batch_size = 50
     batch_size1 = (batch_size//5)
-
-    for i in epochs:
+    
+    for i in range(epochs):  # Fixed the loop definition
         for a in range(0, len(X_train), batch_size):
             batch_end = min(a + batch_size, len(X_train))  # Handle the last batch
             if i == 0:
@@ -414,31 +414,30 @@ def train_model():
                 batch_X, batch_y,
                 batch_size=batch_size1, validation_data=(batch_test_X, batch_test_y), epochs=3, verbose=0
             )
-
-
+    
         # Evaluate the model on the test set
         y_pred_test = model.predict(X_test)
         sys.stdout.write('\033[F\033[K')
         test_reward = get_reward(y_test, y_pred_test)
-
+    
         print("Test reward:", test_reward)
-
+    
         if i == 0:
             best_reward1 = test_reward
-
+    
         if test_reward >= best_reward1:
             best_reward1 = test_reward
             print("Model saved!")
             model.save("model.keras")
 
-    if i == epochs - 1:
-        model = load_model("model.keras")
-        y_pred_test = model.predict(X_test)
-        test_reward = get_reward(y_test, y_pred_test)
-        test_loss = model.evaluate(X_test, y_test)
+if i == epochs - 1:
+    model = load_model("model.keras")
+    y_pred_test = model.predict(X_test)
+    test_reward = get_reward(y_test, y_pred_test)
+    test_loss = model.evaluate(X_test, y_test)
 
-        print("Final test reward:", test_reward)
-        print("Final test loss:", test_loss)
+    print("Final test reward:", test_reward)
+    print("Final test loss:", test_loss)
 
 def evaluate_model():
     print("Evaluating the model...")
