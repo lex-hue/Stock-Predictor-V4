@@ -391,9 +391,9 @@ def train_model():
     batch_size = 50
     batch_size1 = (batch_size//5)
 
-    for a in range(0, len(X_train), batch_size):
+    for i in range(0, len(X_train), batch_size):
         batch_end = min(a + batch_size, len(X_train))  # Handle the last batch
-        if a == 0:
+        if i == 0:
             print(
                 "Batch", a+1, "/", len(X_train),
                 "(", ((a/len(X_train))*100), "% Done)"
