@@ -87,7 +87,7 @@ After the fine-tuning process is fully complete, it is highly recommended to re-
 ---
 
 ## 6. Utilizing the Model for Stock Market Prediction
-Once the previous steps have been completed, the model can be utilized to forecast the stock market for the next 30 days beyond the latest date in the data. The predictions will be shown in the command line and saved as a CSV file.
+Once the previous steps have been completed, the model can be utilized to forecast the stock market for the next 30 days beyond the latest date in the data. The predictions will be shown in the command line and saved as a CSV file. Also try to experiment with the amount of days to predict. 3 - 50 days are an Recommended range for it.
 
 To use the model for prediction, run the following command:
 

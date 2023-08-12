@@ -391,32 +391,29 @@ def train_model():
     batch_size = 50
     batch_size1 = (batch_size//5)
 
-    for i in range(epochs):
-        if i == 1:
-            model = load_model("model.keras")
-        print("Epoch", i+1, "/", epochs)
-        # Train the model for one epoch
-        for a in range(0, len(X_train), batch_size):
-            if a == 0:
-                print(
-                    "Batch", a+1, "/", len(X_train),
-                    "(", ((a/len(X_train))*100), "% Done)"
-                )
-            else:
-                sys.stdout.write('\033[F\033[K')
-                print(
-                    "Batch", a+1, "/", len(X_train),
-                    "(", ((a/len(X_train))*100), "% Done)"
-                )
-            batch_X = X_train[a:a + batch_size]
-            batch_y = y_train[a:a + batch_size]
-            batch_test_X = X_test[a:a + batch_size]
-            batch_test_y = y_test[a:a + batch_size]
-
-            history = model.fit(
-                batch_X, batch_y,
-                batch_size=batch_size1, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
+    for a in range(0, len(X_train), batch_size):
+        batch_end = min(a + batch_size, len(X_train))  # Handle the last batch
+        if a == 0:
+            print(
+                "Batch", a+1, "/", len(X_train),
+                "(", ((a/len(X_train))*100), "% Done)"
             )
+        else:
+            sys.stdout.write('\033[F\033[K')
+            print(
+                "Batch", a+1, "/", len(X_train),
+                "(", ((a/len(X_train))*100), "% Done)"
+            )
+        batch_X = X_train[a:batch_end]
+        batch_y = y_train[a:batch_end]
+        batch_test_X = X_test[a:batch_end]
+        batch_test_y = y_test[a:batch_end]
+
+        history = model.fit(
+            batch_X, batch_y,
+            batch_size=batch_size1, validation_data=(batch_test_X, batch_test_y), epochs=3, verbose=0
+        )
+
 
         # Evaluate the model on the test set
         y_pred_test = model.predict(X_test)
@@ -734,7 +731,7 @@ def fine_tune_model():
             
                         history = model.fit(
                             batch_X, batch_y,
-                            batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
+                            batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=3, verbose=0
                         )
 
                 # Evaluate the model on the test set
@@ -756,7 +753,7 @@ def fine_tune_model():
 
 
 def predict_future_data():
-    print("Utilizing the model for predicting future data (30 days)...")
+    print("Utilizing the model for predicting future data...")
     import os
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -814,13 +811,13 @@ def predict_future_data():
     model = load_model("model.keras")
     model.summary()
 
-    num_predictions = 30
+    num_predictions = int(input("How many days are you wanting to Predict?: "))
 
     # Make predictions for next num_predictions days
     X_pred = X_data[-num_predictions:].reshape(
         (num_predictions, timesteps, X_data.shape[2])
     )
-    y_pred = model.predict(X_pred)[:, 0]
+    y_pred = model.predict(X_pred)[:, -1]
 
     # Inverse transform predictions
     y_pred = scaler.inverse_transform(
@@ -839,11 +836,24 @@ def predict_future_data():
     ).tz_localize(None)
 
     # Calculate % change
-    y_pred_pct_change = (y_pred - y_pred[0]) / y_pred[0] * 100
+    y_pred_pct_change = (1 - (y_pred[0] / y_pred)) * 100
+
+    # Calculate actual prices using % changes
+    actual_prices = []
+    last_actual_close = data["Close"].iloc[-1]  # Last actual close price
+
+    for pct_change in y_pred_pct_change:
+        actual_close = last_actual_close * (1 + (pct_change/100))
+        actual_prices.append(actual_close)
+        last_actual_close = actual_close
 
     # Save predictions and % change in a CSV file
     predictions = pd.DataFrame(
-        {"Date": index, "Predicted Close": y_pred, "% Change": y_pred_pct_change}
+        {
+            "Date": index,
+            "Predicted Close": actual_prices,
+            "% Change": y_pred_pct_change,
+        }
     )
     predictions.to_csv("predictions.csv", index=False)
 
@@ -865,7 +875,7 @@ def predict_future_data():
     plt.plot(data["Close"].values, label="Actual Data")
     plt.plot(
         np.arange(len(data), len(data) + num_predictions),
-        y_pred,
+        actual_prices,
         label="Predicted Data",
     )
 
