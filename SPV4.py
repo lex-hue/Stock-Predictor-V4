@@ -430,14 +430,14 @@ def train_model():
             print("Model saved!")
             model.save("model.keras")
 
-if i == epochs - 1:
-    model = load_model("model.keras")
-    y_pred_test = model.predict(X_test)
-    test_reward = get_reward(y_test, y_pred_test)
-    test_loss = model.evaluate(X_test, y_test)
-
-    print("Final test reward:", test_reward)
-    print("Final test loss:", test_loss)
+    if i == epochs - 1:
+        model = load_model("model.keras")
+        y_pred_test = model.predict(X_test)
+        test_reward = get_reward(y_test, y_pred_test)
+        test_loss = model.evaluate(X_test, y_test)
+    
+        print("Final test reward:", test_reward)
+        print("Final test loss:", test_loss)
 
 def evaluate_model():
     print("Evaluating the model...")
