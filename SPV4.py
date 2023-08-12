@@ -391,28 +391,29 @@ def train_model():
     batch_size = 50
     batch_size1 = (batch_size//5)
 
-    for i in range(0, len(X_train), batch_size):
-        batch_end = min(a + batch_size, len(X_train))  # Handle the last batch
-        if i == 0:
-            print(
-                "Batch", a+1, "/", len(X_train),
-                "(", ((a/len(X_train))*100), "% Done)"
+    for i in epochs:
+        for a in range(0, len(X_train), batch_size):
+            batch_end = min(a + batch_size, len(X_train))  # Handle the last batch
+            if i == 0:
+                print(
+                    "Batch", a+1, "/", len(X_train),
+                    "(", ((a/len(X_train))*100), "% Done)"
+                )
+            else:
+                sys.stdout.write('\033[F\033[K')
+                print(
+                    "Batch", a+1, "/", len(X_train),
+                    "(", ((a/len(X_train))*100), "% Done)"
+                )
+            batch_X = X_train[a:batch_end]
+            batch_y = y_train[a:batch_end]
+            batch_test_X = X_test[a:batch_end]
+            batch_test_y = y_test[a:batch_end]
+    
+            history = model.fit(
+                batch_X, batch_y,
+                batch_size=batch_size1, validation_data=(batch_test_X, batch_test_y), epochs=3, verbose=0
             )
-        else:
-            sys.stdout.write('\033[F\033[K')
-            print(
-                "Batch", a+1, "/", len(X_train),
-                "(", ((a/len(X_train))*100), "% Done)"
-            )
-        batch_X = X_train[a:batch_end]
-        batch_y = y_train[a:batch_end]
-        batch_test_X = X_test[a:batch_end]
-        batch_test_y = y_test[a:batch_end]
-
-        history = model.fit(
-            batch_X, batch_y,
-            batch_size=batch_size1, validation_data=(batch_test_X, batch_test_y), epochs=3, verbose=0
-        )
 
 
         # Evaluate the model on the test set
