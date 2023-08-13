@@ -368,15 +368,10 @@ def train_model():
     # Build model
     model = Sequential()
     model.add(LSTM(units=300, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
-    model.add(Dropout(0.2))
     model.add(LSTM(units=300, return_sequences=True))
-    model.add(Dropout(0.2))
     model.add(LSTM(units=250, return_sequences=True))
-    model.add(Dropout(0.2))
     model.add(LSTM(units=200, return_sequences=True))
-    model.add(Dropout(0.2))
     model.add(LSTM(units=150))
-    model.add(Dropout(0.2))
     model.add(Dense(units=1))
 
     model.summary()
