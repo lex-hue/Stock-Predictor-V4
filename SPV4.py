@@ -836,7 +836,7 @@ def predict_future_data():
     ).tz_localize(None)
 
     # Calculate % change
-    y_pred_pct_change = (1 - (y_pred[0] / y_pred)) * 100
+    y_pred_pct_change = (y_pred - y_pred[0]) / y_pred[0] * 100
 
     # Calculate actual prices using % changes
     actual_prices = []
@@ -845,14 +845,12 @@ def predict_future_data():
     for pct_change in y_pred_pct_change:
         actual_close = last_actual_close * (1 + (pct_change/100))
         actual_prices.append(actual_close)
-        last_actual_close = actual_close
 
     # Save predictions and % change in a CSV file
     predictions = pd.DataFrame(
         {
             "Date": index,
             "Predicted Close": actual_prices,
-            "% Change": y_pred_pct_change,
         }
     )
     predictions.to_csv("predictions.csv", index=False)
@@ -862,51 +860,18 @@ def predict_future_data():
     # Find the rows with the lowest and highest predicted close and the highest and lowest % change
     min_close_row = predictions.iloc[predictions["Predicted Close"].idxmin()]
     max_close_row = predictions.iloc[predictions["Predicted Close"].idxmax()]
-    max_pct_change_row = predictions.iloc[predictions["% Change"].idxmax()]
-    min_pct_change_row = predictions.iloc[predictions["% Change"].idxmin()]
 
     # Print the rows with the lowest and highest predicted close and the highest and lowest % change
-    print(f"\n\nHighest predicted close:\n{max_close_row}\n")
+    print(f"Highest predicted close:\n{max_close_row}\n")
     print(f"Lowest predicted close:\n{min_close_row}\n")
-    print(f"Highest % change:\n{max_pct_change_row}\n")
-    print(f"Lowest % change:\n{min_pct_change_row}")
 
     # Plot historical data and predictions
     plt.plot(data["Close"].values, label="Actual Data")
+
     plt.plot(
         np.arange(len(data), len(data) + num_predictions),
-        actual_prices,
+        predictions["Predicted Close"].values,
         label="Predicted Data",
-    )
-
-    # Add red and green arrows for highest and lowest predicted close respectively, and highest and lowest percentage change
-    plt.annotate(
-        "↓",
-        xy=(min_close_row.name - len(data), min_close_row["Predicted Close"]),
-        color="red",
-        fontsize=16,
-        arrowprops=dict(facecolor="red", shrink=0.05),
-    )
-    plt.annotate(
-        "↑",
-        xy=(max_close_row.name - len(data), max_close_row["Predicted Close"]),
-        color="green",
-        fontsize=16,
-        arrowprops=dict(facecolor="green", shrink=0.05),
-    )
-    plt.annotate(
-        "↑",
-        xy=(max_pct_change_row.name - len(data), y_pred.max()),
-        color="green",
-        fontsize=16,
-        arrowprops=dict(facecolor="green", shrink=0.05),
-    )
-    plt.annotate(
-        "↓",
-        xy=(min_pct_change_row.name - len(data), y_pred.min()),
-        color="red",
-        fontsize=16,
-        arrowprops=dict(facecolor="red", shrink=0.05),
     )
 
     # Add legend and title
