@@ -1079,9 +1079,6 @@ def check_for_updates(local_sha_path, online_sha_path):
 
                 if major_update:
                     print_red("This was a major update. Please review the changelog.")
-
-                # Delete the script after successful update
-                os.remove(__file__)
             except Exception as e:
                 print_red("Failed to update the repository.")
                 print_red(str(e))
