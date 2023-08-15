@@ -1022,32 +1022,32 @@ def update():
         script_content = """
 import os
 import subprocess
+import urllib.request
+
+def print_colored(text, color_code):
+    print(f"\033[{color_code}m{text}\033[0m")
 
 def print_red(text):
-    print(f"\033[91m{text}\033[0m")
+    print_colored(text, "91")
 
 def print_yellow(text):
-    print(f"\033[93m{text}\033[0m")
+    print_colored(text, "93")
 
 def print_green(text):
-    print(f"\033[92m{text}\033[0m")
+    print_colored(text, "92")
 
-# Path to the local commit_sha.sha file
-local_sha_path = "commit_sha.sha"
+def download_file(url, local_path):
+    urllib.request.urlretrieve(url, local_path)
 
-# Path to the online commit_sha.sha file (replace with your online file path)
-online_sha_path = "https://raw.githubusercontent.com/Qerim-iseni09/Stock-Predictor-V4/main/commit_sha.sha"
-downloaded_sha = "commit_sha_online.sha"
+def get_online_sha(url):
+    try:
+        response = urllib.request.urlopen(url)
+        lines = response.read().decode('utf-8').strip().splitlines()
+        return lines[0], lines[1]
+    except Exception as e:
+        raise RuntimeError(f"Failed to retrieve online commit SHA: {e}")
 
-def get_online_sha():
-    # Retrieve the online commit SHA file
-    subprocess.run(["wget", "-q", "-O", downloaded_sha, online_sha_path])
-    with open(downloaded_sha, "r") as file:
-        lines = file.readlines()
-        return lines[0].strip(), lines[1].strip()
-    subprocess.run(["rm", "-rf", downloaded_sha])
-
-def check_for_updates():
+def check_for_updates(local_sha_path, online_sha_path):
     local_sha = ""
     online_sha = ""
     major_update = False
@@ -1057,7 +1057,7 @@ def check_for_updates():
             local_sha = file.readline().strip()
 
     try:
-        online_sha, update_type = get_online_sha()
+        online_sha, update_type = get_online_sha(online_sha_path)
     except Exception as e:
         print_red("Failed to retrieve the online commit SHA.")
         print_red(str(e))
@@ -1090,8 +1090,12 @@ def check_for_updates():
     else:
         print_green("No updates available. Repository is up to date.")
 
-check_for_updates()
-os.remove(__file__)
+if __name__ == "__main__":
+    local_sha_path = "commit_sha.sha"
+    online_sha_path = "https://raw.githubusercontent.com/Qerim-iseni09/Stock-Predictor-V4/main/commit_sha.sha"
+    
+    check_for_updates(local_sha_path, online_sha_path)
+    os.remove(__file__)
     """
 
         with open("update.py", "w") as file:
