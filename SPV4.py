@@ -207,6 +207,7 @@ def prepare_data():
         [
             df["Date"],
             df["Close"],
+            df["Open"],
             df["Adj Close"],
             df["Volume"],
             df["High"],
@@ -232,7 +233,11 @@ def prepare_data():
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
 
+    ax1.plot(df["Open"], label="Open")
     ax1.plot(df["Close"], label="Close")
+    ax1.plot(df["High"], label="High")
+    ax1.plot(df["Low"], label="Low")
+    
     ax1.plot(df["SMA"], label="SMA")
     ax1.fill_between(
         df.index, df["upper_band"], df["lower_band"], alpha=0.2, color="gray"
@@ -259,20 +264,6 @@ def prepare_data():
     ax2.plot(df["RSI"], label="RSI")
     ax2.plot(df["aroon_up"], label="Aroon Up")
     ax2.plot(df["aroon_down"], label="Aroon Down")
-    ax2.scatter(
-        df.index[df["kicking"] == 100],
-        df["High"][df["kicking"] == 100],
-        marker="^",
-        color="green",
-        s=100,
-    )
-    ax2.scatter(
-        df.index[df["kicking"] == -100],
-        df["Low"][df["kicking"] == -100],
-        marker="v",
-        color="red",
-        s=100,
-    )
     ax2.legend()
 
     plt.xlim(df.index[0], df.index[-1])
@@ -314,6 +305,7 @@ def train_model():
     scaler = MinMaxScaler()
     train_data_norm = scaler.fit_transform(train_data[[
                 "Close",
+                "Open",
                 "Adj Close",
                 "Volume",
                 "High",
@@ -333,6 +325,7 @@ def train_model():
     
     test_data_norm = scaler.transform(test_data[[
                 "Close",
+                "Open",
                 "Adj Close",
                 "Volume",
                 "High",
@@ -359,7 +352,7 @@ def train_model():
         y = []
         for i in range(timesteps, len(data)):
             X.append(data[i-timesteps:i])
-            y.append(data[i, 3])
+            y.append(data[i, 0])
         return np.array(X), np.array(y)
 
     X_train, y_train = create_sequences(train_data_norm, timesteps)
@@ -465,6 +458,7 @@ def evaluate_model():
         train_data[
             [
                 "Close",
+                "Open",
                 "Adj Close",
                 "Volume",
                 "High",
@@ -488,6 +482,7 @@ def evaluate_model():
         test_data[
             [
                 "Close",
+                "Open",
                 "Adj Close",
                 "Volume",
                 "High",
@@ -586,6 +581,7 @@ def fine_tune_model():
         train_data[
             [
                 "Close",
+                "Open",
                 "Adj Close",
                 "Volume",
                 "High",
@@ -609,6 +605,7 @@ def fine_tune_model():
         test_data[
             [
                 "Close",
+                "Open",
                 "Adj Close",
                 "Volume",
                 "High",
@@ -770,6 +767,7 @@ def predict_future_data():
         data[
             [
                 "Close",
+                "Open",
                 "Adj Close",
                 "Volume",
                 "High",
@@ -812,7 +810,7 @@ def predict_future_data():
     X_pred = X_data[-num_predictions:].reshape(
         (num_predictions, timesteps, X_data.shape[2])
     )
-    y_pred = model.predict(X_pred)[:, -1]
+    y_pred = model.predict(X_pred)[:, 0]
 
     # Inverse transform predictions
     y_pred = scaler.inverse_transform(
