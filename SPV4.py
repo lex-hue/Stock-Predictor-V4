@@ -385,24 +385,27 @@ def train_model():
     batch_size = 32
     
     for i in range(epochs):  # Fixed the loop definition
+        print(f"Epoch {i+1} / {epochs}")
         for a in range(0, len(X_train), batch_size):
             batch_end = min(a + batch_size, len(X_train))  # Handle the last batch
             if i == 0:
                 print(
                     "Batch", a+1, "/", len(X_train),
-                    "(", ((a/len(X_train))*100), "% Done)"
+                    f"({((a/len(X_train))*100):.2f}% Done)"
                 )
             else:
                 sys.stdout.write('\033[F\033[K')
                 print(
                     "Batch", a+1, "/", len(X_train),
-                    "(", ((a/len(X_train))*100), "% Done)"
+                    f"({((a/len(X_train))*100):.2f}% Done)"
                 )
             batch_X = X_train[a:batch_end]
             batch_y = y_train[a:batch_end]
             batch_test_X = X_test[a:batch_end]
             batch_test_y = y_test[a:batch_end]
-    
+
+            sys.stdout.write('\033[F\033[K')
+
             history = model.fit(
                 batch_X, batch_y,
                 batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
@@ -885,6 +888,18 @@ def compare_predictions():
     import os
     import pandas as pd
     import matplotlib.pyplot as plt
+    from sklearn.metrics import (
+        mean_squared_error,
+        r2_score,
+        mean_absolute_percentage_error,
+    )
+
+    # Define reward function
+    def get_reward(y_true, y_pred):
+        mape = mean_absolute_percentage_error(y_true, y_pred)
+        r2 = r2_score(y_true, y_pred)
+        reward = ((1 - mape) + r2) / 2
+        return reward
 
     # Get a list of CSV files in the "data" folder
     data_folder = "data"
@@ -930,7 +945,9 @@ def compare_predictions():
 
     # Calculate the mean absolute percentage error and print it
     mape = combined_data["Absolute % Error"].mean()
+    comp = get_reward(combined_data["Actual Close"], combined_data["Close"])
     print(f"Mean Absolute Percentage Error: {mape:.2f}%")
+    print(f"Line and Accuracy: {comp*100:.2f}%")
 
     # Find the row with the highest and lowest absolute percentage error and print them
     min_error_row = combined_data.iloc[combined_data["Absolute % Error"].idxmin()]
