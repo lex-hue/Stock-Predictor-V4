@@ -350,7 +350,7 @@ def train_model():
                 "lower_band_supertrend",]])
 
     # Define time steps
-    timesteps = 365
+    timesteps = 90
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
@@ -509,7 +509,7 @@ def evaluate_model():
     )
 
     # Define time steps
-    timesteps = 365
+    timesteps = 90
 
     def create_sequences(data, timesteps):
         X = []
@@ -632,7 +632,7 @@ def fine_tune_model():
     )
 
     # Define time steps
-    timesteps = 365
+    timesteps = 90
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
@@ -794,7 +794,7 @@ def predict_future_data():
     )
 
     # Define time steps
-    timesteps = 365
+    timesteps = 90
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
