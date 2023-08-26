@@ -29,7 +29,7 @@
 - RAM: 18 GB (without a GPU)
 - Supported Operating Systems: Linux, Mac, or Windows
 
-If your PC meets at least 70% of these recommendations, it should perform well during the training process. If your specs fall below this threshold, consider running the program on [Colab](https://colab.research.google.com/github/Qerim-iseni09/Stock-Predictor-V4/blob/main/SPV4.ipynb) (highly recommended) or on your local machine.
+If your PC meets at least 70% of these recommendations, it should perform well during the training process. If your specs fall below this threshold, consider running the program on [Colab](https://colab.research.google.com/github/Qerim-iseni09/Stock-Predictor-V4/blob/main/SPV4.ipynb) (highly recommended) or on your local machine (May take long).
 
 ---
 
