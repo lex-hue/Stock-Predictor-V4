@@ -720,10 +720,16 @@ def fine_tune_model():
                 # Train the model for one epoch
                 for a in range(0, len(X_train), batch_size):
                     if a == 0:
-                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
+                        print(
+                                "Batch", a+1, "/", len(X_train),
+                                f"({((a/len(X_train))*100):.2f}% Done)"
+                            )
                     else:
                         sys.stdout.write('\033[F\033[K')
-                        print("Batch", a, "/", len(X_train), "(", ((a/len(X_train))*100), "% Done)")
+                        print(
+                            "Batch", a+1, "/", len(X_train),
+                            f"({((a/len(X_train))*100):.2f}% Done)"
+                            )
                         batch_X = X_train[a:a + batch_size]
                         batch_y = y_train[a:a + batch_size]
                         batch_test_X = X_test[a:a + batch_size]
