@@ -99,6 +99,31 @@ def prepare_data():
 
     ticker_symbol = input("Enter the ticker symbol (e.g., AAPL for Apple Inc.): ")
 
+    tic = yf.Ticker(ticker_symbol)
+    info = tic.get_info()
+
+    print(f"Information of {ticker_symbol}:\n")
+
+    print(info["shortName"],"\n")
+
+    indicator = "UNKNOWN"
+
+    if "recommendationKey" in info:
+        if info["recommendationKey"] == "buy":
+            indicator = "Buy"
+        elif info["recommendationKey"] == "sell":
+            indicator = "Sell"
+        elif info["recommendationKey"] == "strong buy":
+            indicator = "Strong Buy"
+        elif info["recommendationKey"] == "hold":
+            indicator = "Hold"
+        elif info["recommendationKey"] == "underperform":
+            indicator = "Underperform"
+
+    print(f"Recommendation Trend is on {indicator}")
+
+    download = input("Do you want to download this Ticker?: ")
+
     def download_and_prepare_data():
         # Function to download data from Yahoo Finance
         print("Downloading data from Yahoo Finance...")
@@ -273,8 +298,11 @@ def prepare_data():
         plt.show()
 
     if __name__ == "__main__":
-        download_and_prepare_data()
-        preprocess_data()
+        if download == "yes":
+            download_and_prepare_data()
+            preprocess_data()
+        else:
+            print("Exiting Script..")
 
 def train_model():
     import os
