@@ -350,7 +350,7 @@ def train_model():
                 "lower_band_supertrend",]])
 
     # Define time steps
-    timesteps = 1000
+    timesteps = 500
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
@@ -370,9 +370,6 @@ def train_model():
     model.add(LSTM(units=300, return_sequences=True))
     model.add(LSTM(units=250, return_sequences=True))
     model.add(LSTM(units=200, return_sequences=True))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(LSTM(units=50, return_sequences=True))
     model.add(LSTM(units=150))
     model.add(Dense(units=1))
 
@@ -386,7 +383,6 @@ def train_model():
 
     epochs = 10
     batch_size = 50
-    batch_size1 = (batch_size//5)
     
     for i in range(epochs):  # Fixed the loop definition
         for a in range(0, len(X_train), batch_size):
@@ -409,7 +405,7 @@ def train_model():
     
             history = model.fit(
                 batch_X, batch_y,
-                batch_size=batch_size1, validation_data=(batch_test_X, batch_test_y), epochs=3, verbose=0
+                batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
             )
     
         # Evaluate the model on the test set
@@ -513,7 +509,7 @@ def evaluate_model():
     )
 
     # Define time steps
-    timesteps = 1000
+    timesteps = 500
 
     def create_sequences(data, timesteps):
         X = []
@@ -636,7 +632,7 @@ def fine_tune_model():
     )
 
     # Define time steps
-    timesteps = 1000
+    timesteps = 500
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
@@ -732,7 +728,7 @@ def fine_tune_model():
             
                         history = model.fit(
                             batch_X, batch_y,
-                            batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=3, verbose=0
+                            batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
                         )
 
                 # Evaluate the model on the test set
@@ -798,7 +794,7 @@ def predict_future_data():
     )
 
     # Define time steps
-    timesteps = 1000
+    timesteps = 500
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
