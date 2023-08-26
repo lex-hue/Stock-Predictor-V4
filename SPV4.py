@@ -350,7 +350,7 @@ def train_model():
                 "lower_band_supertrend",]])
 
     # Define time steps
-    timesteps = 100
+    timesteps = 1000
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
@@ -366,10 +366,13 @@ def train_model():
 
     # Build model
     model = Sequential()
-    model.add(LSTM(units=300, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
+    model.add(LSTM(units=500, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
     model.add(LSTM(units=300, return_sequences=True))
     model.add(LSTM(units=250, return_sequences=True))
     model.add(LSTM(units=200, return_sequences=True))
+    model.add(LSTM(units=50, return_sequences=True))
+    model.add(LSTM(units=50, return_sequences=True))
+    model.add(LSTM(units=50, return_sequences=True))
     model.add(LSTM(units=150))
     model.add(Dense(units=1))
 
@@ -510,7 +513,7 @@ def evaluate_model():
     )
 
     # Define time steps
-    timesteps = 100
+    timesteps = 1000
 
     def create_sequences(data, timesteps):
         X = []
@@ -633,7 +636,7 @@ def fine_tune_model():
     )
 
     # Define time steps
-    timesteps = 100
+    timesteps = 1000
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
@@ -795,7 +798,7 @@ def predict_future_data():
     )
 
     # Define time steps
-    timesteps = 100
+    timesteps = 1000
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
