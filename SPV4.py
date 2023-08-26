@@ -382,7 +382,7 @@ def train_model():
     filepath="model.keras"
 
     epochs = 10
-    batch_size = 1
+    batch_size = 32
     
     for i in range(epochs):  # Fixed the loop definition
         for a in range(0, len(X_train), batch_size):
@@ -711,7 +711,7 @@ def fine_tune_model():
         else:
             print("Training Model with 5 Epochs")
             epochs = 5
-            batch_size = 1
+            batch_size = 32
             for i in range(epochs):
                 print("Epoch", i, "/", epochs)
                 # Train the model for one epoch
