@@ -40,17 +40,9 @@ python SPV4.py --install
 
 ## 2. Data Preparation
 To prepare the data for stock prediction, you can follow either of the following options:
+1. Run the `SPV4.py` script by executing `python SPV4.py --prepare_data` and type in the Ticker Symbol youd like to Preprocess (For Example BTC-USB, AAPL or so).
 
-Option 1:
-1. Visit [Yahoo Finance](https://finance.yahoo.com/) and choose a stock of your preference.
-2. Access the Historical Data tab and download the corresponding CSV file. Save it in the designated data folder. For example, you can use [Bitcoin](https://finance.yahoo.com/quote/BTC-USD?p=BTC-USD) as an illustration (**To avoid encountering an error, it is important to make sure that the data includes a timeframe of at least two years. Otherwise, the training process may fail, similar to the problem described in Issue #3.**).
-3. Run the `SPV4.py` script by executing `python SPV4.py --prepare_data` and select the downloaded CSV file.
-
-Option 2:
-1. Utilize the `SPV4.py --generate_stock` script to generate fabricated stock data for training your model, irrespective of the option you choose.
-3. Run the `SPV4.py` script by executing `python SPV4.py --prepare_data` and select the generated CSV file.
-
-Upon completion of these steps, your downloaded/generated stock data will contain indicators that enhance the reliability of predictions.
+Upon completion of these steps, your Preprocessed stock data will contain indicators that enhance the reliability of predictions.
 
 ---
 

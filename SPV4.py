@@ -50,6 +50,7 @@ def install_dependencies():
         packages = [
             "pandas",
             "ta",
+            "yfinance",
             "numpy",
             "scikit-learn",
             "matplotlib",
@@ -83,192 +84,197 @@ def install_dependencies():
         print("Creating 'data' directory...")
         os.makedirs("data", exist_ok=True)
 
-        filename = os.path.join("data", "add csvs in this folder.txt")
-        with open(filename, "w") as file:
-            file.write("This is the 'add csvs in this folder.txt' file.")
-
-        print("'data' directory and file created successfully!\n")
+        print("'data' directory created successfully!\n")
         print("SPV4 installation completed successfully!")
 
 def prepare_data():
-    print("Preprocessing and preparing the CSV data...")
     import os
     import pandas as pd
     import numpy as np
     import ta
     import matplotlib.pyplot as plt
+    import yfinance as yf
 
-    # List all CSV files in the "data" folder
-    data_folder = "data"
-    csv_files = [file for file in os.listdir(data_folder) if file.endswith(".csv")]
+    ticker_symbol = None
 
-    # Print the available CSV files with numbers for selection
-    print("Available CSV files:")
-    for i, file in enumerate(csv_files):
-        print(f"{i + 1}. {file}")
+    ticker_symbol = input("Enter the ticker symbol (e.g., AAPL for Apple Inc.): ")
 
-    # Ask for user input to select a CSV file
-    selected_file_index = (
-        int(input("Enter the number of the CSV file to preprocess: ")) - 1
-    )
-    selected_file = csv_files[selected_file_index]
-    selected_file_path = os.path.join(data_folder, selected_file)
+    def download_and_prepare_data():
+        # Function to download data from Yahoo Finance
+        print("Downloading data from Yahoo Finance...")
 
-    # Preprocess the selected CSV file
-    df = pd.read_csv(selected_file_path)
+        # Download data using yfinance
+        data = yf.download(ticker_symbol, period="max", interval="1d")
 
-    # Calculate indicators using ta library
-    df["SMA"] = ta.trend.sma_indicator(df["Close"], window=14)
-    df["RSI"] = ta.momentum.rsi(df["Close"], window=14)
-    df["MACD"] = ta.trend.macd_diff(df["Close"], window_slow=26, window_fast=12, window_sign=9)
-    df_bollinger = ta.volatility.BollingerBands(df["Close"], window=20)
-    df["upper_band"] = df_bollinger.bollinger_hband()
-    df["middle_band"] = df_bollinger.bollinger_mavg()
-    df["lower_band"] = df_bollinger.bollinger_lband()
-    df["aroon_up"] = ta.trend.aroon_up(df["Close"], window=25)
-    df["aroon_down"] = ta.trend.aroon_down(df["Close"], window=25)
-    
-    open_prices = df["Open"]
-    close_prices = df["Close"]
+        df = pd.DataFrame(data)
+        
+        # Save the DataFrame to a CSV file
+        df.to_csv(f"./data/{ticker_symbol}.csv")
+        
+        print("Data downloaded and saved")
 
-    # Calculate the "Kicking" pattern feature using NumPy
-    kicking_pattern = np.zeros_like(open_prices)
+    def preprocess_data():
+        print("Preprocessing and preparing the CSV data...")
+        
+        # Read the CSV file
+        df = pd.read_csv(f"./data/{ticker_symbol}.csv")
+        
+        # Calculate indicators using ta library
+        df["SMA"] = ta.trend.sma_indicator(df["Close"], window=14)
+        df["RSI"] = ta.momentum.rsi(df["Close"], window=14)
+        df["MACD"] = ta.trend.macd_diff(df["Close"], window_slow=26, window_fast=12, window_sign=9)
+        df_bollinger = ta.volatility.BollingerBands(df["Close"], window=20)
+        df["upper_band"] = df_bollinger.bollinger_hband()
+        df["middle_band"] = df_bollinger.bollinger_mavg()
+        df["lower_band"] = df_bollinger.bollinger_lband()
+        df["aroon_up"] = ta.trend.aroon_up(df["Close"], window=25)
+        df["aroon_down"] = ta.trend.aroon_down(df["Close"], window=25)
+        
+        open_prices = df["Open"]
+        close_prices = df["Close"]
 
-    # Loop through the data and check for "Kicking" pattern
-    for i in range(1, len(open_prices)):
-        if open_prices[i] < open_prices[i-1] and \
-        open_prices[i] > close_prices[i-1] and \
-        close_prices[i] > open_prices[i-1] and \
-        close_prices[i] < close_prices[i-1] and \
-        open_prices[i] - close_prices[i] > open_prices[i-1] - close_prices[i-1]:
-            kicking_pattern[i] = 100  # Some positive value to indicate the pattern
+        # Calculate the "Kicking" pattern feature using NumPy
+        kicking_pattern = np.zeros_like(open_prices)
 
-    # Assign the kicking_pattern as a new column to the DataFrame
-    df["kicking"] = kicking_pattern
+        # Loop through the data and check for "Kicking" pattern
+        for i in range(1, len(open_prices)):
+            if open_prices[i] < open_prices[i-1] and \
+            open_prices[i] > close_prices[i-1] and \
+            close_prices[i] > open_prices[i-1] and \
+            close_prices[i] < close_prices[i-1] and \
+            open_prices[i] - close_prices[i] > open_prices[i-1] - close_prices[i-1]:
+                kicking_pattern[i] = 100  # Some positive value to indicate the pattern
 
-    # Calculate ATR and SuperTrend
-    def calculate_atr(high, low, close, window=14):
-        true_ranges = np.maximum.reduce([high - low, np.abs(high - close.shift()), np.abs(low - close.shift())])
-        atr = np.zeros_like(high)
-        atr[window - 1] = np.mean(true_ranges[:window])
-        for i in range(window, len(high)):
-            atr[i] = (atr[i - 1] * (window - 1) + true_ranges[i]) / window
-        return atr
+        # Assign the kicking_pattern as a new column to the DataFrame
+        df["kicking"] = kicking_pattern
 
-    df["ATR"] = calculate_atr(df["High"], df["Low"], df["Close"], window=14)
+        # Calculate ATR and SuperTrend
+        def calculate_atr(high, low, close, window=14):
+            true_ranges = np.maximum.reduce([high - low, np.abs(high - close.shift()), np.abs(low - close.shift())])
+            atr = np.zeros_like(high)
+            atr[window - 1] = np.mean(true_ranges[:window])
+            for i in range(window, len(high)):
+                atr[i] = (atr[i - 1] * (window - 1) + true_ranges[i]) / window
+            return atr
 
-    # Calculate Supertrend signals with reduced sensitivity and using all indicators
-    df["upper_band_supertrend"] = df["High"] - (df["ATR"] * 2)
-    df["lower_band_supertrend"] = df["Low"] + (df["ATR"] * 2)
+        df["ATR"] = calculate_atr(df["High"], df["Low"], df["Close"], window=14)
 
-    # Define conditions for uptrend and downtrend based on sensitivity to indicators
-    uptrend_conditions = [
-        (df["Close"] > df["lower_band_supertrend"]),
-        (df["Close"] > df["SMA"]),
-        (df["Close"] > df["middle_band"]),
-        (df["Close"] > df["MACD"]),
-        (df["RSI"] > 50),
-        (df["aroon_up"] > df["aroon_down"]),
-        (df["kicking"] == 1),  # Assuming "kicking" is an indicator where 1 indicates an uptrend.
-        (df["Close"] > df["upper_band_supertrend"])
-    ]
+        # Calculate Supertrend signals with reduced sensitivity and using all indicators
+        df["upper_band_supertrend"] = df["High"] - (df["ATR"] * 2)
+        df["lower_band_supertrend"] = df["Low"] + (df["ATR"] * 2)
 
-    downtrend_conditions = [
-        (df["Close"] < df["upper_band_supertrend"]),
-        (df["Close"] < df["SMA"]),
-        (df["Close"] < df["middle_band"]),
-        (df["Close"] < df["MACD"]),
-        (df["RSI"] < 50),
-        (df["aroon_up"] < df["aroon_down"]),
-        (df["kicking"] == -1),  # Assuming "kicking" is an indicator where -1 indicates a downtrend.
-        (df["Close"] < df["lower_band_supertrend"])
-    ]
+        # Define conditions for uptrend and downtrend based on sensitivity to indicators
+        uptrend_conditions = [
+            (df["Close"] > df["lower_band_supertrend"]),
+            (df["Close"] > df["SMA"]),
+            (df["Close"] > df["middle_band"]),
+            (df["Close"] > df["MACD"]),
+            (df["RSI"] > 50),
+            (df["aroon_up"] > df["aroon_down"]),
+            (df["kicking"] == 1),  # Assuming "kicking" is an indicator where 1 indicates an uptrend.
+            (df["Close"] > df["upper_band_supertrend"])
+        ]
 
-    # Set initial signal values to 0
-    df["supertrend_signal"] = 0
+        downtrend_conditions = [
+            (df["Close"] < df["upper_band_supertrend"]),
+            (df["Close"] < df["SMA"]),
+            (df["Close"] < df["middle_band"]),
+            (df["Close"] < df["MACD"]),
+            (df["RSI"] < 50),
+            (df["aroon_up"] < df["aroon_down"]),
+            (df["kicking"] == -1),  # Assuming "kicking" is an indicator where -1 indicates a downtrend.
+            (df["Close"] < df["lower_band_supertrend"])
+        ]
 
-    # Update signals based on sensitivity to indicators
-    df.loc[np.any(uptrend_conditions, axis=0), "supertrend_signal"] = 1
-    df.loc[np.any(downtrend_conditions, axis=0), "supertrend_signal"] = -1
+        # Set initial signal values to 0
+        df["supertrend_signal"] = 0
 
-    # Remove consecutive signals in the same direction (less sensitive)
-    signal_changes = df["supertrend_signal"].diff().fillna(0)
-    consecutive_mask = (signal_changes == 0) & (signal_changes.shift(-1) == 0)
-    df.loc[consecutive_mask, "supertrend_signal"] = 0
+        # Update signals based on sensitivity to indicators
+        df.loc[np.any(uptrend_conditions, axis=0), "supertrend_signal"] = 1
+        df.loc[np.any(downtrend_conditions, axis=0), "supertrend_signal"] = -1
 
-    # Replace "False" with 0 and "True" with 1
-    df = df.replace({False: 0, True: 1})
+        # Remove consecutive signals in the same direction (less sensitive)
+        signal_changes = df["supertrend_signal"].diff().fillna(0)
+        consecutive_mask = (signal_changes == 0) & (signal_changes.shift(-1) == 0)
+        df.loc[consecutive_mask, "supertrend_signal"] = 0
 
-    # Fill missing values with 0
-    df.fillna(0, inplace=True)
+        # Replace "False" with 0 and "True" with 1
+        df = df.replace({False: 0, True: 1})
 
-    # Concatenate the columns in the order you want
-    df2 = pd.concat(
-        [
-            df["Date"],
-            df["Close"],
-            df["Open"],
-            df["Adj Close"],
-            df["Volume"],
-            df["High"],
-            df["Low"],
-            df["SMA"],
-            df["MACD"],
-            df["upper_band"],
-            df["middle_band"],
-            df["lower_band"],
-            df["supertrend_signal"],
-            df["RSI"],
-            df["aroon_up"],
-            df["aroon_down"],
-            df["kicking"],
-            df["upper_band_supertrend"],
-            df["lower_band_supertrend"],
-        ],
-        axis=1,
-    )
+        # Fill missing values with 0
+        df.fillna(0, inplace=True)
 
-    # Save the DataFrame to a new CSV file with indicators
-    df2.to_csv("data.csv", index=False)
+        # Concatenate the columns in the order you want
+        df2 = pd.concat(
+            [
+                df["Date"],
+                df["Close"],
+                df["Open"],
+                df["Adj Close"],
+                df["Volume"],
+                df["High"],
+                df["Low"],
+                df["SMA"],
+                df["MACD"],
+                df["upper_band"],
+                df["middle_band"],
+                df["lower_band"],
+                df["supertrend_signal"],
+                df["RSI"],
+                df["aroon_up"],
+                df["aroon_down"],
+                df["kicking"],
+                df["upper_band_supertrend"],
+                df["lower_band_supertrend"],
+            ],
+            axis=1,
+        )
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+        # Save the DataFrame to a new CSV file with indicators
+        df2.to_csv("data.csv", index=False)
 
-    ax1.plot(df["Open"], label="Open")
-    ax1.plot(df["Close"], label="Close")
-    ax1.plot(df["High"], label="High")
-    ax1.plot(df["Low"], label="Low")
-    
-    ax1.plot(df["SMA"], label="SMA")
-    ax1.fill_between(
-        df.index, df["upper_band"], df["lower_band"], alpha=0.2, color="gray"
-    )
-    ax1.plot(df["upper_band"], linestyle="dashed", color="gray")
-    ax1.plot(df["middle_band"], linestyle="dashed", color="gray")
-    ax1.plot(df["lower_band"], linestyle="dashed", color="gray")
-    ax1.scatter(
-        df.index[df["supertrend_signal"] == 1],
-        df["Close"][df["supertrend_signal"] == 1],
-        marker="^",
-        color="green",
-        s=100,
-    )
-    ax1.scatter(
-        df.index[df["supertrend_signal"] == -1],
-        df["Close"][df["supertrend_signal"] == -1],
-        marker="v",
-        color="red",
-        s=100,
-    )
-    ax1.legend()
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
 
-    ax2.plot(df["RSI"], label="RSI")
-    ax2.plot(df["aroon_up"], label="Aroon Up")
-    ax2.plot(df["aroon_down"], label="Aroon Down")
-    ax2.legend()
+        ax1.plot(df["Open"], label="Open")
+        ax1.plot(df["Close"], label="Close")
+        ax1.plot(df["High"], label="High")
+        ax1.plot(df["Low"], label="Low")
+        
+        ax1.plot(df["SMA"], label="SMA")
+        ax1.fill_between(
+            df.index, df["upper_band"], df["lower_band"], alpha=0.2, color="gray"
+        )
+        ax1.plot(df["upper_band"], linestyle="dashed", color="gray")
+        ax1.plot(df["middle_band"], linestyle="dashed", color="gray")
+        ax1.plot(df["lower_band"], linestyle="dashed", color="gray")
+        ax1.scatter(
+            df.index[df["supertrend_signal"] == 1],
+            df["Close"][df["supertrend_signal"] == 1],
+            marker="^",
+            color="green",
+            s=100,
+        )
+        ax1.scatter(
+            df.index[df["supertrend_signal"] == -1],
+            df["Close"][df["supertrend_signal"] == -1],
+            marker="v",
+            color="red",
+            s=100,
+        )
+        ax1.legend()
 
-    plt.xlim(df.index[0], df.index[-1])
+        ax2.plot(df["RSI"], label="RSI")
+        ax2.plot(df["aroon_up"], label="Aroon Up")
+        ax2.plot(df["aroon_down"], label="Aroon Down")
+        ax2.legend()
 
-    plt.show()
+        plt.xlim(df.index[0], df.index[-1])
+
+        plt.show()
+
+    if __name__ == "__main__":
+        download_and_prepare_data()
+        preprocess_data()
 
 def train_model():
     import os
@@ -944,75 +950,6 @@ def compare_predictions():
     # Show plot
     plt.show()
 
-
-def gen_stock():
-    print("Generating Stock Data...")
-    import csv
-    import random
-    import datetime
-
-    def generate_stock_data_csv(file_path, num_lines, data_type):
-        # Define the column names
-        columns = ["Date", "Close", "Adj Close", "Volume", "High", "Low", "Open"]
-
-        # Generate stock data based on the selected data type
-        data = []
-        start_date = datetime.datetime(2022, 1, 1)
-        for i in range(num_lines):
-            if data_type == "linear":
-                close_price = 100.0 + i * 10
-            elif data_type == "exponential":
-                close_price = 100.0 * (1.1**i)
-            elif data_type == "random":
-                if i > 0:
-                    prev_close = data[i - 1][1]
-                    close_price = prev_close * random.uniform(0.95, 1.05)
-                else:
-                    close_price = 100.0
-            elif data_type == "trend":
-                if i > 0:
-                    prev_close = data[i - 1][1]
-                    close_price = prev_close + random.uniform(-2, 2)
-                else:
-                    close_price = 100.0
-            else:
-                raise ValueError("Invalid data type provided.")
-
-            date = start_date + datetime.timedelta(days=i)
-            adj_close = close_price
-            volume = random.randint(100000, 1000000)
-            high = close_price * random.uniform(1.01, 1.05)
-            low = close_price * random.uniform(0.95, 0.99)
-            open_price = close_price * random.uniform(0.98, 1.02)
-
-            data.append(
-                [
-                    date.strftime("%Y-%m-%d"),
-                    close_price,
-                    adj_close,
-                    volume,
-                    high,
-                    low,
-                    open_price,
-                ]
-            )
-
-        # Save the generated data to a CSV file
-        with open(file_path, "w", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(columns)
-            writer.writerows(data)
-
-        print(f"Stock data CSV file '{file_path}' generated successfully.")
-
-    # Prompt the user for options
-    num_lines = int(input("Enter the number of lines: "))
-    data_type = input("Enter the data type (linear/exponential/random/trend): ")
-    file_path = "data/example.csv"
-
-    # Generate the stock data CSV file
-    generate_stock_data_csv(file_path, num_lines, data_type)
-
 def update():
     import os
 
@@ -1120,9 +1057,6 @@ if __name__ == "__main__":
         "--install", action="store_true", help="Install all dependencies for SPV4"
     )
     parser.add_argument(
-        "--generate_stock", action="store_true", help="Generate Stock Data"
-    )
-    parser.add_argument(
         "--prepare_data",
         action="store_true",
         help="Preprocess and Prepare the CSV Data",
@@ -1155,8 +1089,6 @@ if __name__ == "__main__":
             install_dependencies()
         if args.update:
             update()
-        if args.generate_stock:
-            gen_stock()
         if args.prepare_data:
             prepare_data()
         if args.train:
