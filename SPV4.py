@@ -95,56 +95,30 @@ def prepare_data():
     import matplotlib.pyplot as plt
     import yfinance as yf
 
-    ticker_symbol = None
-
-    ticker_symbol = input("Enter the ticker symbol (e.g., AAPL for Apple Inc.): ")
-
-    tic = yf.Ticker(ticker_symbol)
-    info = tic.get_info()
-
-    print(f"Information of {ticker_symbol}:\n")
-
-    print(info["shortName"],"\n")
-
-    indicator = "UNKNOWN"
-
-    if "recommendationKey" in info:
-        if info["recommendationKey"] == "buy":
-            indicator = "Buy"
-        elif info["recommendationKey"] == "sell":
-            indicator = "Sell"
-        elif info["recommendationKey"] == "strong buy":
-            indicator = "Strong Buy"
-        elif info["recommendationKey"] == "hold":
-            indicator = "Hold"
-        elif info["recommendationKey"] == "underperform":
-            indicator = "Underperform"
-
-    print(f"Recommendation Trend is on {indicator}")
-
-    download = input("Do you want to download this Ticker?: ")
-
-    def download_and_prepare_data():
-        # Function to download data from Yahoo Finance
-        print("Downloading data from Yahoo Finance...")
-
+    def download_and_prepare_data(ticker_symbol):
+        # Function to download and prepare data
+        print(f"Downloading data for {ticker_symbol} from Yahoo Finance...")
+        
         # Download data using yfinance
         data = yf.download(ticker_symbol, period="max", interval="1d")
-
+        
         df = pd.DataFrame(data)
         
         # Save the DataFrame to a CSV file
-        df.to_csv(f"./data/{ticker_symbol}.csv")
+        data_file = f"./data/{ticker_symbol}.csv"
+        df.to_csv(data_file)
         
-        print("Data downloaded and saved")
+        print("Data downloaded and saved to", data_file)
 
-    def preprocess_data():
-        print("Preprocessing and preparing the CSV data...")
+    def preprocess_data(ticker_symbol):
+        # Function to preprocess and analyze the data
+        print("Preprocessing and analyzing the CSV data...")
         
         # Read the CSV file
-        df = pd.read_csv(f"./data/{ticker_symbol}.csv")
+        data_file = f"./data/{ticker_symbol}.csv"
+        df = pd.read_csv(data_file)
         
-        # Calculate indicators using ta library
+        # Calculate technical indicators using ta library
         df["SMA"] = ta.trend.sma_indicator(df["Close"], window=14)
         df["RSI"] = ta.momentum.rsi(df["Close"], window=14)
         df["MACD"] = ta.trend.macd_diff(df["Close"], window_slow=26, window_fast=12, window_sign=9)
@@ -185,8 +159,8 @@ def prepare_data():
         df["ATR"] = calculate_atr(df["High"], df["Low"], df["Close"], window=14)
 
         # Calculate Supertrend signals with reduced sensitivity and using all indicators
-        df["upper_band_supertrend"] = df["High"] - (df["ATR"] * 2)
-        df["lower_band_supertrend"] = df["Low"] + (df["ATR"] * 2)
+        df["upper_band_supertrend"] = df["High"] - (df["ATR"])
+        df["lower_band_supertrend"] = df["Low"] + (df["ATR"])
 
         # Define conditions for uptrend and downtrend based on sensitivity to indicators
         uptrend_conditions = [
@@ -217,14 +191,6 @@ def prepare_data():
         # Update signals based on sensitivity to indicators
         df.loc[np.any(uptrend_conditions, axis=0), "supertrend_signal"] = 1
         df.loc[np.any(downtrend_conditions, axis=0), "supertrend_signal"] = -1
-
-        # Remove consecutive signals in the same direction (less sensitive)
-        signal_changes = df["supertrend_signal"].diff().fillna(0)
-        consecutive_mask = (signal_changes == 0) & (signal_changes.shift(-1) == 0)
-        df.loc[consecutive_mask, "supertrend_signal"] = 0
-
-        # Replace "False" with 0 and "True" with 1
-        df = df.replace({False: 0, True: 1})
 
         # Fill missing values with 0
         df.fillna(0, inplace=True)
@@ -258,6 +224,12 @@ def prepare_data():
         # Save the DataFrame to a new CSV file with indicators
         df2.to_csv("data.csv", index=False)
 
+        # Remove consecutive signals in the same direction (less sensitive)
+        signal_changes = df["supertrend_signal"].diff().fillna(0)
+        consecutive_mask = (signal_changes == 0) & (signal_changes.shift(-1) == 0)
+        df.loc[consecutive_mask, "supertrend_signal"] = 0
+
+        # Plot the data
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
 
         ax1.plot(df["Open"], label="Open")
@@ -298,35 +270,56 @@ def prepare_data():
         plt.show()
 
     if __name__ == "__main__":
+        ticker_symbol = input("Enter the ticker symbol (e.g., AAPL for Apple Inc.): ")
+        tic = yf.Ticker(ticker_symbol)
+        info = tic.get_info()
+
+        print(f"Information of {ticker_symbol}:\n")
+
+        print(info["shortName"],"\n")
+
+        indicator = "UNKNOWN"
+
+        if "recommendationKey" in info:
+            if info["recommendationKey"] == "buy":
+                indicator = "Buy"
+            elif info["recommendationKey"] == "sell":
+                indicator = "Sell"
+            elif info["recommendationKey"] == "strong buy":
+                indicator = "Strong Buy"
+            elif info["recommendationKey"] == "hold":
+                indicator = "Hold"
+            elif info["recommendationKey"] == "underperform":
+                indicator = "Underperform"
+
+        print(f"Recommendation Trend is on {indicator}")
+
+        download = input("Do you want to download this Ticker?: ").lower()
+
         if download == "yes":
-            download_and_prepare_data()
-            preprocess_data()
+            download_and_prepare_data(ticker_symbol)
+            preprocess_data(ticker_symbol)
         else:
             print("Exiting Script..")
 
 def train_model():
     import os
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
     import pandas as pd
     import numpy as np
-    from sklearn.preprocessing import MinMaxScaler
     import tensorflow as tf
-    from tensorflow.keras.models import Sequential, load_model
-    from tensorflow.keras.layers import LSTM, Dense, Dropout
-    from sklearn.metrics import mean_absolute_percentage_error
-    from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-    import sys
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import LSTM, Dense
+    from sklearn.metrics import (
+        r2_score,
+        mean_absolute_percentage_error,
+    )
+    from sklearn.preprocessing import MinMaxScaler
 
     print("TensorFlow version:", tf.__version__)
 
     cpugpu()
-
-    # Define reward function
-    def get_reward(y_true, y_pred):
-        mape = mean_absolute_percentage_error(y_true, y_pred)
-        reward = (1 - mape)
-        return reward
 
     # Load data
     data = pd.read_csv("data.csv")
@@ -335,47 +328,25 @@ def train_model():
     train_data = data.iloc[:int(0.8*len(data))]
     test_data = data.iloc[int(0.8*len(data)):]
 
+    # Define reward function
+    def get_reward(y_true, y_pred):
+        mape = mean_absolute_percentage_error(y_true, y_pred)
+        r2 = r2_score(y_true, y_pred)
+        reward = ((1 - mape) + r2) / 2
+        return reward
+
     # Normalize data
     scaler = MinMaxScaler()
     train_data_norm = scaler.fit_transform(train_data[[
-                "Close",
-                "Open",
-                "Adj Close",
-                "Volume",
-                "High",
-                "Low",
-                "SMA",
-                "MACD",
-                "upper_band",
-                "middle_band",
-                "lower_band",
-                "supertrend_signal",
-                "RSI",
-                "aroon_up",
-                "aroon_down",
-                "kicking",
-                "upper_band_supertrend",
-                "lower_band_supertrend",]])
-    
+        "Close", "Open", "Adj Close", "Volume", "High", "Low", "SMA", "MACD",
+        "upper_band", "middle_band", "lower_band", "supertrend_signal", "RSI",
+        "aroon_up", "aroon_down", "kicking", "upper_band_supertrend", "lower_band_supertrend"
+    ]])
     test_data_norm = scaler.transform(test_data[[
-                "Close",
-                "Open",
-                "Adj Close",
-                "Volume",
-                "High",
-                "Low",
-                "SMA",
-                "MACD",
-                "upper_band",
-                "middle_band",
-                "lower_band",
-                "supertrend_signal",
-                "RSI",
-                "aroon_up",
-                "aroon_down",
-                "kicking",
-                "upper_band_supertrend",
-                "lower_band_supertrend",]])
+        "Close", "Open", "Adj Close", "Volume", "High", "Low", "SMA", "MACD",
+        "upper_band", "middle_band", "lower_band", "supertrend_signal", "RSI",
+        "aroon_up", "aroon_down", "kicking", "upper_band_supertrend", "lower_band_supertrend"
+    ]])
 
     # Define time steps
     timesteps = 90
@@ -394,11 +365,7 @@ def train_model():
 
     # Build model
     model = Sequential()
-    model.add(LSTM(units=500, return_sequences=True, input_shape=(timesteps, X_train.shape[2])))
-    model.add(LSTM(units=300, return_sequences=True))
-    model.add(LSTM(units=250, return_sequences=True))
-    model.add(LSTM(units=200, return_sequences=True))
-    model.add(LSTM(units=150))
+    model.add(LSTM(units=300, input_shape=(timesteps, X_train.shape[2])))
     model.add(Dense(units=1))
 
     model.summary()
@@ -406,171 +373,36 @@ def train_model():
     # Compile model
     model.compile(optimizer='adam', loss='mse')
 
-    # Define callbacks
-    filepath="model.keras"
-
+    # Training
     epochs = 10
     batch_size = 32
-    
-    for i in range(epochs):  # Fixed the loop definition
+
+    for i in range(epochs):
         print(f"Epoch {i+1} / {epochs}")
-        for a in range(0, len(X_train), batch_size):
-            batch_end = min(a + batch_size, len(X_train))  # Handle the last batch
-            if i == 0:
-                print(
-                    "Batch", a+1, "/", len(X_train),
-                    f"({((a/len(X_train))*100):.2f}% Done)"
-                )
-            else:
-                sys.stdout.write('\033[F\033[K')
-                print(
-                    "Batch", a+1, "/", len(X_train),
-                    f"({((a/len(X_train))*100):.2f}% Done)"
-                )
-            batch_X = X_train[a:batch_end]
-            batch_y = y_train[a:batch_end]
-            batch_test_X = X_test[a:batch_end]
-            batch_test_y = y_test[a:batch_end]
-
-            sys.stdout.write('\033[F\033[K')
-
-            history = model.fit(
-                batch_X, batch_y,
-                batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
-            )
-    
+        history = model.fit(X_train, y_train, batch_size=batch_size, validation_data=(X_test, y_test), epochs=1)
+        
         # Evaluate the model on the test set
         y_pred_test = model.predict(X_test)
-        sys.stdout.write('\033[F\033[K')
         test_reward = get_reward(y_test, y_pred_test)
-    
+        
         print("Test reward:", test_reward)
-    
+        
         if i == 0:
-            best_reward1 = test_reward
-    
-        if test_reward >= best_reward1:
-            best_reward1 = test_reward
+            best_reward = test_reward
+        
+        if test_reward >= best_reward:
+            best_reward = test_reward
             print("Model saved!")
             model.save("model.keras")
 
-    if i == epochs - 1:
-        model = load_model("model.keras")
-        y_pred_test = model.predict(X_test)
-        test_reward = get_reward(y_test, y_pred_test)
-        test_loss = model.evaluate(X_test, y_test)
-    
-        print("Final test reward:", test_reward)
-        print("Final test loss:", test_loss)
+    # Load the best model and evaluate
+    model = tf.keras.models.load_model("model.keras")
+    y_pred_test = model.predict(X_test)
+    test_reward = get_reward(y_test, y_pred_test)
+    test_loss = model.evaluate(X_test, y_test)
 
-def evaluate_model():
-    print("Evaluating the model...")
-    import os
-
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-
-    import pandas as pd
-    import numpy as np
-    import tensorflow as tf
-    from sklearn.preprocessing import MinMaxScaler
-    from tensorflow.keras.models import load_model
-    from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
-    import matplotlib.pyplot as plt
-
-    print("TensorFlow version:", tf.__version__)
-
-    cpugpu()
-
-    # Load data
-    data = pd.read_csv("data.csv")
-
-    # Split data into train and test sets
-    train_data = data.iloc[: int(0.8 * len(data))]
-    test_data = data.iloc[int(0.8 * len(data)) :]
-
-    # Normalize data
-    scaler = MinMaxScaler()
-    train_data_norm = scaler.fit_transform(
-        train_data[
-            [
-                "Close",
-                "Open",
-                "Adj Close",
-                "Volume",
-                "High",
-                "Low",
-                "SMA",
-                "MACD",
-                "upper_band",
-                "middle_band",
-                "lower_band",
-                "supertrend_signal",
-                "RSI",
-                "aroon_up",
-                "aroon_down",
-                "kicking",
-                "upper_band_supertrend",
-                "lower_band_supertrend",
-            ]
-        ]
-    )
-    test_data_norm = scaler.transform(
-        test_data[
-            [
-                "Close",
-                "Open",
-                "Adj Close",
-                "Volume",
-                "High",
-                "Low",
-                "SMA",
-                "MACD",
-                "upper_band",
-                "middle_band",
-                "lower_band",
-                "supertrend_signal",
-                "RSI",
-                "aroon_up",
-                "aroon_down",
-                "kicking",
-                "upper_band_supertrend",
-                "lower_band_supertrend",
-            ]
-        ]
-    )
-
-    # Define time steps
-    timesteps = 90
-
-    def create_sequences(data, timesteps):
-        X = []
-        y = []
-        for i in range(timesteps, len(data)):
-            X.append(data[i - timesteps : i])
-            y.append(data[i, 0])
-        return np.array(X), np.array(y)
-
-    # Load model
-    model = load_model("model.keras")
-
-    # Evaluate model
-    rmse_scores = []
-    mape_scores = []
-    rewards = []
-    model = load_model("model.keras")
-    X_test, y_test = create_sequences(test_data_norm, timesteps)
-    y_pred = model.predict(X_test)
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    mape = mean_absolute_percentage_error(y_test, y_pred)
-    rmse_scores.append(rmse)
-    mape_scores.append(mape)
-    rewards.append(1 - mape)
-
-    # Print results
-    print(f"Mean RMSE: {np.mean(rmse_scores)}")
-    print(f"Mean MAPE: {np.mean(mape_scores)}")
-    print(f"Total Reward: {sum(rewards)}")
-
+    print("Final test reward:", test_reward)
+    print("Final test loss:", test_loss)
 
 def fine_tune_model():
     print("Finetuning the model...")
@@ -744,33 +576,11 @@ def fine_tune_model():
             epochs = 5
             batch_size = 32
             for i in range(epochs):
-                print("Epoch", i, "/", epochs)
-                # Train the model for one epoch
-                for a in range(0, len(X_train), batch_size):
-                    if a == 0:
-                        print(
-                                "Batch", a+1, "/", len(X_train),
-                                f"({((a/len(X_train))*100):.2f}% Done)"
-                            )
-                    else:
-                        sys.stdout.write('\033[F\033[K')
-                        print(
-                            "Batch", a+1, "/", len(X_train),
-                            f"({((a/len(X_train))*100):.2f}% Done)"
-                            )
-                        batch_X = X_train[a:a + batch_size]
-                        batch_y = y_train[a:a + batch_size]
-                        batch_test_X = X_test[a:a + batch_size]
-                        batch_test_y = y_test[a:a + batch_size]
-            
-                        history = model.fit(
-                            batch_X, batch_y,
-                            batch_size=batch_size, validation_data=(batch_test_X, batch_test_y), epochs=1, verbose=0
-                        )
+                print(f"Epoch {i+1} / {epochs}")
+                history = model.fit(X_train, y_train, batch_size=batch_size, validation_data=(X_test, y_test), epochs=1)
 
                 # Evaluate the model on the test set
                 y_pred_test = model.predict(X_test)
-                sys.stdout.write('\033[F\033[K')
                 test_reward = get_reward(y_test, y_pred_test)
 
                 print("Test reward:", test_reward)
@@ -922,18 +732,6 @@ def compare_predictions():
     import os
     import pandas as pd
     import matplotlib.pyplot as plt
-    from sklearn.metrics import (
-        mean_squared_error,
-        r2_score,
-        mean_absolute_percentage_error,
-    )
-
-    # Define reward function
-    def get_reward(y_true, y_pred):
-        mape = mean_absolute_percentage_error(y_true, y_pred)
-        r2 = r2_score(y_true, y_pred)
-        reward = ((1 - mape) + r2) / 2
-        return reward
 
     # Get a list of CSV files in the "data" folder
     data_folder = "data"
@@ -979,9 +777,7 @@ def compare_predictions():
 
     # Calculate the mean absolute percentage error and print it
     mape = combined_data["Absolute % Error"].mean()
-    comp = get_reward(combined_data["Actual Close"], combined_data["Close"])
     print(f"Mean Absolute Percentage Error: {mape:.2f}%")
-    print(f"Line and Accuracy: {comp*100:.2f}%")
 
     # Find the row with the highest and lowest absolute percentage error and print them
     min_error_row = combined_data.iloc[combined_data["Absolute % Error"].idxmin()]
@@ -1092,9 +888,7 @@ if __name__ == "__main__":
 def do_all_actions():
     prepare_data()
     train_model()
-    evaluate_model()
     fine_tune_model()
-    evaluate_model()
     predict_future_data()
 
 
@@ -1112,7 +906,6 @@ if __name__ == "__main__":
         help="Preprocess and Prepare the CSV Data",
     )
     parser.add_argument("--train", action="store_true", help="Train the SPV4 Model")
-    parser.add_argument("--eval", action="store_true", help="Evaluate the Model")
     parser.add_argument("--fine_tune", action="store_true", help="Finetune the Model")
     parser.add_argument(
         "--predict",
@@ -1143,8 +936,6 @@ if __name__ == "__main__":
             prepare_data()
         if args.train:
             train_model()
-        if args.eval:
-            evaluate_model()
         if args.fine_tune:
             fine_tune_model()
         if args.predict:
