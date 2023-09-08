@@ -2,6 +2,8 @@ import argparse
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
+message = "The Stock-Predictor-V4 Project has reached its full potential and will no longer receive updates.\nTo add new functionalities or prediction logic,\nwe welcome third-party pull requests from developers with the necessary expertise.\nThank you for your support and understanding."
+
 def cpugpu():
     import tensorflow as tf
     # Check if GPU is available and print the list of GPUs
@@ -89,6 +91,8 @@ def install_dependencies():
 
         print("'data' directory created successfully!\n")
         print("SPV4 installation completed successfully!")
+
+        print(message)
 
 def prepare_data():
     import os
@@ -325,6 +329,8 @@ def prepare_data():
         else:
             print("Exiting Script..")
 
+        print(message)
+
 def train_model():
     import os
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -433,6 +439,8 @@ def train_model():
     print("Final test reward:", test_reward)
     print("Final test loss:", test_loss)
 
+    print(message)
+
 def eval():
     import os
     import sys
@@ -514,6 +522,8 @@ def eval():
     plt.legend()
     plt.show()
 
+    print(message)
+
 
 def fine_tune_model():
     print("Finetuning the model...")
@@ -590,6 +600,8 @@ def fine_tune_model():
     reward_threshold = float(
         input("Enter the reward threshold (0 - 1, 0.9 recommended): ")
     )
+
+    print(message)
 
     # Initialize rewards
     rewards = []
@@ -741,6 +753,8 @@ def compare_predictions():
     # Show plot
     plt.show()
 
+    print(message)
+
 def update():
     import os
 
@@ -830,13 +844,15 @@ if __name__ == "__main__":
     create_update_script()
     run_update_script()
 
+    print(message)
+
 def do_all_actions():
     prepare_data()
     train_model()
     eval()
     fine_tune_model()
     eval()
-    predict_future_data()
+    print(message)
 
 
 if __name__ == "__main__":
@@ -871,7 +887,9 @@ if __name__ == "__main__":
         help="Do all actions from above (No Install & Generating Stock Data)",
     )
 
+
     args = parser.parse_args()
+    print(message)
 
     if args.do_all:
         do_all_actions()
@@ -894,22 +912,18 @@ if __name__ == "__main__":
             import random
 
             # Function to print with typewriter effect
-            def typewriter_effect(text, min_delay=0, max_delay=0.25):
+            def typewriter_effect(text, min_delay=0, max_delay=0.2):
                 for char in text:
                     sys.stdout.write(char)
                     sys.stdout.flush()
                     time.sleep(random.uniform(min_delay, max_delay))
                 print("\n")  # Add a new line at the end
 
-            # Define the story and message
-            story = "Once upon a time, in a land far, far away,\nwe embarked on a grand adventure. We thought we knew the way, but..."
-            message = "Whoops, we've stumbled into a building site!\nExiting...\nThe code is currently undergoing a major revamp.\n\n\n\nThank you for your support!..\nI didnt expect it to get this popular..\nThank you..\n\nAnd hey...\nMistakes are the only way up.\nFollow your true Self."
-            fast = "Thank you for reading this."
+            # Define the message
+            message = "The Stock-Predictor-V4 Project has reached its full potential and will no longer receive updates.\nTo add new functionalities or prediction logic,\nwe welcome third-party pull requests from developers with the necessary expertise.\nThank you for your support and understanding."
 
-            # Tell the story with the typewriter effect
-            typewriter_effect(story)
+            # Display the message with the typewriter effect
             typewriter_effect(message)
-            typewriter_effect(fast, min_delay=0, max_delay=0.1)
 
         if args.compare:
             compare_predictions()

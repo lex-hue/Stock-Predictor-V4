@@ -2,7 +2,7 @@
 
 ![stockpredictor ai logo](https://user-images.githubusercontent.com/53996451/224323224-3ec1cd20-747c-42ad-9fb1-ba6e0ecb358b.png)
 
-> Please be aware that this project has entered its second testing phase due to issues encountered in the initial prediction phase. If you possess the code containing the prediction logic, kindly refrain from utilizing it. It is recommended that you [update](#1b-updating-the-repository) the code instead.
+> The Stock-Predictor-V4 Project has undoubtedly reached its full potential, and at this stage, third-party pull requests represent the sole avenue for introducing new features and functionalities. Unfortunately, due to my limited expertise in prediction logic, I had to remove it entirely from the update cycle. Embracing the contributions of skilled developers through pull requests is now the most promising way to breathe fresh life into the project and ensure its continued growth and relevance.
 
 ---
 
@@ -96,7 +96,7 @@ After the fine-tuning process is fully complete, it is highly recommended to re-
 
 ---
 
-# The prediction logic is currently undergoing construction and is temporarily incapable of generating predictions. It is undergoing a significant overhaul. Please refrain from using the previous code for predictions, as it contains errors. Using the old code may yield inaccurate results, as it bases predictions on the last specified number of days provided in the code.
+### Predicting into the Future. Will maybe come back from an third-party Pull Request...
 
 ---
 
