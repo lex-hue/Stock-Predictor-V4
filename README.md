@@ -2,6 +2,8 @@
 
 ![stockpredictor ai logo](https://user-images.githubusercontent.com/53996451/224323224-3ec1cd20-747c-42ad-9fb1-ba6e0ecb358b.png)
 
+> Please be aware that this project has entered its second testing phase due to issues encountered in the initial prediction phase. If you possess the code containing the prediction logic, kindly refrain from utilizing it. It is recommended that you [update](#1b-updating-the-repository) the code instead.
+
 ---
 
 ## Now On Colab! [![Open SPV4 In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Qerim-iseni09/Stock-Predictor-V4/blob/main/SPV4.ipynb)
@@ -16,11 +18,10 @@
   - [3. Training the LSTM RL Model](#3-training-the-lstm-rl-model)
   - [4. Evaluating the Model](#4-evaluating-the-model)
   - [5. Fine Tuning the LSTM RL Model](#5-fine-tuning-the-lstm-rl-model)
-  - [6. Utilizing the Model for Stock Market Prediction](#6-utilizing-the-model-for-stock-market-prediction)
+  - 6. Utilizing the Model for Stock Market Prediction (Is in Constuction, dont use it!)
   - [7. Comparing the predicted values with the actual values after the 30-day period.](#7-comparing-the-predicted-values-with-the-actual-values-after-the-30-day-period)
 
 ---
-
 
 **Recommended PC Specifications for Stock-Predictor-V4:**
 
@@ -47,6 +48,7 @@ python SPV4.py --install
 python SPV4.py --update
 python SPV4.py --install
 ```
+**You must retrain your Models so that the new Code Supports it*
 
 ---
 
@@ -94,17 +96,7 @@ After the fine-tuning process is fully complete, it is highly recommended to re-
 
 ---
 
-## 6. Utilizing the Model for Stock Market Prediction
-Once the previous steps have been completed, the model can be utilized to forecast the stock market for the next 30 days beyond the latest date in the data. The predictions will be shown in the command line and saved as a CSV file. Also try to experiment with the amount of days to predict. 3 - 50 days are an Recommended range for it.
-
-To use the model for prediction, run the following command:
-
-```
-python SPV4.py --predict
-```
-
-And Happy Trading!
-However, please note that any losses incurred by utilizing the model's predictions are not the responsibility of the developer.
+# The prediction logic is currently undergoing construction and is temporarily incapable of generating predictions. It is undergoing a significant overhaul. Please refrain from using the previous code for predictions, as it contains errors. Using the old code may yield inaccurate results, as it bases predictions on the last specified number of days provided in the code.
 
 ---
 

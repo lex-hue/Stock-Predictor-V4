@@ -1,4 +1,6 @@
 import argparse
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 def cpugpu():
     import tensorflow as tf
@@ -54,7 +56,8 @@ def install_dependencies():
             "numpy",
             "scikit-learn",
             "matplotlib",
-            "tensorflow"
+            "tensorflow",
+            "statsmodels"
         ]
         total_packages = len(packages)
         progress = 0
@@ -94,6 +97,8 @@ def prepare_data():
     import ta
     import matplotlib.pyplot as plt
     import yfinance as yf
+    from datetime import datetime
+    from statsmodels.tsa.seasonal import seasonal_decompose
 
     def download_and_prepare_data(ticker_symbol):
         # Function to download and prepare data
@@ -192,8 +197,13 @@ def prepare_data():
         df.loc[np.any(uptrend_conditions, axis=0), "supertrend_signal"] = 1
         df.loc[np.any(downtrend_conditions, axis=0), "supertrend_signal"] = -1
 
-        # Fill missing values with 0
-        df.fillna(0, inplace=True)
+        # Decompose the time series data
+        result = seasonal_decompose(df["Close"], model="additive", period=365)
+
+        # Add decomposed components to the DataFrame
+        df["trend"] = result.trend
+        df["seasonal"] = result.seasonal
+        df["residual"] = result.resid
 
         # Concatenate the columns in the order you want
         df2 = pd.concat(
@@ -217,11 +227,17 @@ def prepare_data():
                 df["kicking"],
                 df["upper_band_supertrend"],
                 df["lower_band_supertrend"],
+                df["trend"],
+                df["seasonal"],
+                df["residual"]
             ],
             axis=1,
         )
 
-        # Save the DataFrame to a new CSV file with indicators
+                # Fill missing values with 0
+        df2.fillna(0, inplace=True)
+
+        # Save the DataFrame to a new CSV file with indicators and decomposed components
         df2.to_csv("data.csv", index=False)
 
         # Remove consecutive signals in the same direction (less sensitive)
@@ -230,12 +246,11 @@ def prepare_data():
         df.loc[consecutive_mask, "supertrend_signal"] = 0
 
         # Plot the data
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+        fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 1, figsize=(12, 8), sharex=True)
 
         ax1.plot(df["Open"], label="Open")
         ax1.plot(df["Close"], label="Close")
-        ax1.plot(df["High"], label="High")
-        ax1.plot(df["Low"], label="Low")
+        ax1.plot(df["trend"], label="Trend")
         
         ax1.plot(df["SMA"], label="SMA")
         ax1.fill_between(
@@ -260,10 +275,18 @@ def prepare_data():
         )
         ax1.legend()
 
-        ax2.plot(df["RSI"], label="RSI")
         ax2.plot(df["aroon_up"], label="Aroon Up")
         ax2.plot(df["aroon_down"], label="Aroon Down")
         ax2.legend()
+
+        ax3.plot(df["RSI"], label="RSI")
+        ax3.legend()
+
+        ax4.plot(df["seasonal"], label="Seasonal")
+        ax4.legend()
+
+        ax5.plot(df["residual"], label="Residual")
+        ax5.legend()
 
         plt.xlim(df.index[0], df.index[-1])
 
@@ -304,54 +327,64 @@ def prepare_data():
 
 def train_model():
     import os
-
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
     import pandas as pd
     import numpy as np
     import tensorflow as tf
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense
-    from sklearn.metrics import (
-        r2_score,
-        mean_absolute_percentage_error,
-    )
-    from sklearn.preprocessing import MinMaxScaler
+    from tensorflow.keras.layers import BatchNormalization, PReLU, LSTM, Dense
+    from sklearn.metrics import r2_score, mean_absolute_percentage_error
+    from sklearn.preprocessing import MaxAbsScaler
 
     print("TensorFlow version:", tf.__version__)
 
-    cpugpu()
-
-    # Load data
-    data = pd.read_csv("data.csv")
-
-    # Split data into train and test sets
-    train_data = data.iloc[:int(0.8*len(data))]
-    test_data = data.iloc[int(0.8*len(data)):]
+    # Define a function to load data (replace 'data.csv' with your data file)
+    def load_data(file_path: str) -> pd.DataFrame:
+        data = pd.read_csv(file_path)
+        return data[['Close']]  # Only load the 'Close' column
 
     # Define reward function
     def get_reward(y_true, y_pred):
         mape = mean_absolute_percentage_error(y_true, y_pred)
         r2 = r2_score(y_true, y_pred)
-        reward = ((1 - mape) + r2) / 2
+        reward = (((1 - mape) * 0.1) + ((r2) * 1.9)) / 2
         return reward
 
-    # Normalize data
-    scaler = MinMaxScaler()
-    train_data_norm = scaler.fit_transform(train_data[[
-        "Close", "Open", "Adj Close", "Volume", "High", "Low", "SMA", "MACD",
-        "upper_band", "middle_band", "lower_band", "supertrend_signal", "RSI",
-        "aroon_up", "aroon_down", "kicking", "upper_band_supertrend", "lower_band_supertrend"
-    ]])
-    test_data_norm = scaler.transform(test_data[[
-        "Close", "Open", "Adj Close", "Volume", "High", "Low", "SMA", "MACD",
-        "upper_band", "middle_band", "lower_band", "supertrend_signal", "RSI",
-        "aroon_up", "aroon_down", "kicking", "upper_band_supertrend", "lower_band_supertrend"
-    ]])
+    # Define a function to create the LSTM model
+    def create_LSTM_model() -> Sequential:
+        model = Sequential()
+        
+        model.add(LSTM(units=150, return_sequences=True))
+        model.add(PReLU())
+        model.add(PReLU())
+        model.add(PReLU())
+        model.add(LSTM(units=150))
+        model.add(PReLU())
+        model.add(PReLU())
+        model.add(PReLU())
+
+        # Add the final output layer
+        model.add(Dense(units=1, activation='linear'))
+
+        return model
+
+    # Load data
+    data = load_data("data.csv")
+
+    # Split data into train and test sets
+    train_data = data.iloc[:int(0.8*len(data))]
+    test_data = data.iloc[int(0.8*len(data)):]
+
+    # Normalize data (only use 'Close' column)
+    scaler = MaxAbsScaler()
+    train_data_norm = scaler.fit_transform(train_data)
+    test_data_norm = scaler.transform(test_data)
 
     # Define time steps
-    timesteps = 90
+    timesteps = 100
 
-    # Create sequences of timesteps
+    # Create sequences of timesteps (only using 'Close' values)
     def create_sequences(data, timesteps):
         X = []
         y = []
@@ -363,18 +396,14 @@ def train_model():
     X_train, y_train = create_sequences(train_data_norm, timesteps)
     X_test, y_test = create_sequences(test_data_norm, timesteps)
 
-    # Build model
-    model = Sequential()
-    model.add(LSTM(units=300, input_shape=(timesteps, X_train.shape[2])))
-    model.add(Dense(units=1))
-
-    model.summary()
+    # Build and compile the LSTM model
+    model = create_LSTM_model()
 
     # Compile model
-    model.compile(optimizer='adam', loss='mse')
+    model.compile(optimizer='adam', loss="huber")
 
     # Training
-    epochs = 10
+    epochs = 25
     batch_size = 32
 
     for i in range(epochs):
@@ -404,6 +433,88 @@ def train_model():
     print("Final test reward:", test_reward)
     print("Final test loss:", test_loss)
 
+def eval():
+    import os
+    import sys
+    import pandas as pd
+    import numpy as np
+    import tensorflow as tf
+    from sklearn.preprocessing import MaxAbsScaler
+    from tensorflow.keras.models import load_model
+    from sklearn.metrics import (
+        mean_squared_error,
+        r2_score,
+        mean_absolute_percentage_error,
+    )
+    import matplotlib.pyplot as plt
+
+    print("TensorFlow version:", tf.__version__)
+
+    cpugpu()
+
+    # Define reward function
+    def get_reward(y_true, y_pred):
+        mape = mean_absolute_percentage_error(y_true, y_pred)
+        r2 = r2_score(y_true, y_pred)
+        reward = (((1 - mape)*0.1) + ((r2)*1.9)) / 2
+        return reward
+
+    # Load data
+    data = pd.read_csv("data.csv")
+
+    # Split data into train and test sets
+    test_data = data.iloc[int(0.8 * len(data)) :]
+
+    # Normalize data
+    scaler = MaxAbsScaler()
+    test_data_norm = scaler.fit_transform(
+        test_data[
+            [
+"Close"
+            ]
+        ]
+    )
+
+    # Define time steps
+    timesteps = 100
+
+    # Create sequences of timesteps
+    def create_sequences(data, timesteps):
+        X = []
+        y = []
+        for i in range(timesteps, len(data)):
+            X.append(data[i - timesteps : i])
+            y.append(data[i, 0])
+        return np.array(X), np.array(y)
+
+    X_test, y_test = create_sequences(test_data_norm, timesteps)
+
+    # Load pre-trained model
+    model = load_model("model.keras")
+    print("\nEvaluating Model")
+
+    # Evaluate model
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    mape = mean_absolute_percentage_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    # Calculate the reward
+    reward = get_reward(y_test, y_pred)
+
+    # Print evaluation metrics
+    print("MAPE:", mape)
+    print("MSE:", mse)
+    print("R2:", r2)
+    print("Reward:", reward)
+
+    # Plot predictions vs. actual values if needed
+    plt.plot(y_test, label="Actual")
+    plt.plot(y_pred, label="Predicted")
+    plt.legend()
+    plt.show()
+
+
 def fine_tune_model():
     print("Finetuning the model...")
     import os
@@ -415,7 +526,7 @@ def fine_tune_model():
     import pandas as pd
     import numpy as np
     import tensorflow as tf
-    from sklearn.preprocessing import MinMaxScaler
+    from sklearn.preprocessing import MaxAbsScaler
     from tensorflow.keras.models import load_model
     from sklearn.metrics import (
         mean_squared_error,
@@ -433,7 +544,7 @@ def fine_tune_model():
     def get_reward(y_true, y_pred):
         mape = mean_absolute_percentage_error(y_true, y_pred)
         r2 = r2_score(y_true, y_pred)
-        reward = ((1 - mape) + r2) / 2
+        reward = (((1 - mape)*0.1) + ((r2)*1.9)) / 2
         return reward
 
     # Load data
@@ -444,58 +555,24 @@ def fine_tune_model():
     test_data = data.iloc[int(0.8 * len(data)) :]
 
     # Normalize data
-    scaler = MinMaxScaler()
+    scaler = MaxAbsScaler()
     train_data_norm = scaler.fit_transform(
         train_data[
             [
-                "Close",
-                "Open",
-                "Adj Close",
-                "Volume",
-                "High",
-                "Low",
-                "SMA",
-                "MACD",
-                "upper_band",
-                "middle_band",
-                "lower_band",
-                "supertrend_signal",
-                "RSI",
-                "aroon_up",
-                "aroon_down",
-                "kicking",
-                "upper_band_supertrend",
-                "lower_band_supertrend",
+"Close"
             ]
         ]
     )
-    test_data_norm = scaler.transform(
+    test_data_norm = scaler.fit_transform(
         test_data[
             [
-                "Close",
-                "Open",
-                "Adj Close",
-                "Volume",
-                "High",
-                "Low",
-                "SMA",
-                "MACD",
-                "upper_band",
-                "middle_band",
-                "lower_band",
-                "supertrend_signal",
-                "RSI",
-                "aroon_up",
-                "aroon_down",
-                "kicking",
-                "upper_band_supertrend",
-                "lower_band_supertrend",
+"Close"
             ]
         ]
     )
 
     # Define time steps
-    timesteps = 90
+    timesteps = 100
 
     # Create sequences of timesteps
     def create_sequences(data, timesteps):
@@ -572,8 +649,8 @@ def fine_tune_model():
 
             break
         else:
-            print("Training Model with 5 Epochs")
-            epochs = 5
+            epochs = 10
+            print(f"Training Model with {epochs} Epochs")
             batch_size = 32
             for i in range(epochs):
                 print(f"Epoch {i+1} / {epochs}")
@@ -594,138 +671,6 @@ def fine_tune_model():
                     print("Model reached reward threshold", test_reward, ". Saving and stopping epochs!")
                     model.save("model.keras")
                     break
-
-
-def predict_future_data():
-    print("Utilizing the model for predicting future data...")
-    import os
-
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-
-    import pandas as pd
-    import numpy as np
-    from sklearn.preprocessing import MinMaxScaler
-    from tensorflow.keras.models import load_model
-    import matplotlib.pyplot as plt
-
-    cpugpu()
-
-    # Load data
-    data = pd.read_csv("data.csv")
-
-    # Normalize data
-    scaler = MinMaxScaler()
-    data_norm = scaler.fit_transform(
-        data[
-            [
-                "Close",
-                "Open",
-                "Adj Close",
-                "Volume",
-                "High",
-                "Low",
-                "SMA",
-                "MACD",
-                "upper_band",
-                "middle_band",
-                "lower_band",
-                "supertrend_signal",
-                "RSI",
-                "aroon_up",
-                "aroon_down",
-                "kicking",
-                "upper_band_supertrend",
-                "lower_band_supertrend",
-            ]
-        ]
-    )
-
-    # Define time steps
-    timesteps = 90
-
-    # Create sequences of timesteps
-    def create_sequences(data, timesteps):
-        X = []
-        for i in range(timesteps, len(data)):
-            X.append(data[i - timesteps : i])
-        return np.array(X)
-
-    X_data = create_sequences(data_norm, timesteps)
-
-    # Load model
-    model = load_model("model.keras")
-    model.summary()
-
-    num_predictions = int(input("How many days are you wanting to Predict?: "))
-
-    # Make predictions for next num_predictions days
-    X_pred = X_data[-num_predictions:].reshape(
-        (num_predictions, timesteps, X_data.shape[2])
-    )
-    y_pred = model.predict(X_pred)[:, 0]
-
-    # Inverse transform predictions
-    y_pred = scaler.inverse_transform(
-        np.hstack(
-            [
-                np.zeros((len(y_pred), data_norm.shape[1] - 1)),
-                np.array(y_pred).reshape(-1, 1),
-            ]
-        )
-    )[:, -1]
-
-    # Generate date index for predictions
-    last_date = data["Date"].iloc[-1]
-    index = pd.date_range(
-        last_date, periods=num_predictions, freq="D", tz="UTC"
-    ).tz_localize(None)
-
-    # Calculate % change
-    y_pred_pct_change = (y_pred - y_pred[0]) / y_pred[0] * 100
-
-    # Calculate actual prices using % changes
-    actual_prices = []
-    last_actual_close = data["Close"].iloc[-1]  # Last actual close price
-
-    for pct_change in y_pred_pct_change:
-        actual_close = last_actual_close * (1 + (pct_change/100))
-        actual_prices.append(actual_close)
-
-    # Save predictions and % change in a CSV file
-    predictions = pd.DataFrame(
-        {
-            "Date": index,
-            "Predicted Close": actual_prices,
-        }
-    )
-    predictions.to_csv("predictions.csv", index=False)
-
-    print(predictions)
-
-    # Find the rows with the lowest and highest predicted close and the highest and lowest % change
-    min_close_row = predictions.iloc[predictions["Predicted Close"].idxmin()]
-    max_close_row = predictions.iloc[predictions["Predicted Close"].idxmax()]
-
-    # Print the rows with the lowest and highest predicted close and the highest and lowest % change
-    print(f"Highest predicted close:\n{max_close_row}\n")
-    print(f"Lowest predicted close:\n{min_close_row}\n")
-
-    # Plot historical data and predictions
-    plt.plot(data["Close"].values, label="Actual Data")
-
-    plt.plot(
-        np.arange(len(data), len(data) + num_predictions),
-        predictions["Predicted Close"].values,
-        label="Predicted Data",
-    )
-
-    # Add legend and title
-    plt.legend()
-    plt.title("Predicted Close Prices")
-
-    # Show plot
-    plt.show()
-
 
 def compare_predictions():
     print("Comparing the predictions with the actual data...")
@@ -888,7 +833,9 @@ if __name__ == "__main__":
 def do_all_actions():
     prepare_data()
     train_model()
+    eval()
     fine_tune_model()
+    eval()
     predict_future_data()
 
 
@@ -906,11 +853,12 @@ if __name__ == "__main__":
         help="Preprocess and Prepare the CSV Data",
     )
     parser.add_argument("--train", action="store_true", help="Train the SPV4 Model")
+    parser.add_argument("--eval", action="store_true", help="Evaluate the SPV4 Model")
     parser.add_argument("--fine_tune", action="store_true", help="Finetune the Model")
     parser.add_argument(
         "--predict",
         action="store_true",
-        help="Utilize the Model for Predicting Future Data (30 Days)",
+        help="Utilize the Model for Predicting Future Data (30 Days). Wont run.",
     )
     parser.add_argument(
         "--compare",
@@ -936,9 +884,32 @@ if __name__ == "__main__":
             prepare_data()
         if args.train:
             train_model()
+        if args.eval:
+            eval()
         if args.fine_tune:
             fine_tune_model()
         if args.predict:
-            predict_future_data()
+            import time
+            import sys
+            import random
+
+            # Function to print with typewriter effect
+            def typewriter_effect(text, min_delay=0, max_delay=0.25):
+                for char in text:
+                    sys.stdout.write(char)
+                    sys.stdout.flush()
+                    time.sleep(random.uniform(min_delay, max_delay))
+                print("\n")  # Add a new line at the end
+
+            # Define the story and message
+            story = "Once upon a time, in a land far, far away,\nwe embarked on a grand adventure. We thought we knew the way, but..."
+            message = "Whoops, we've stumbled into a building site!\nExiting...\nThe code is currently undergoing a major revamp.\n\n\n\nThank you for your support!..\nI didnt expect it to get this popular..\nThank you..\n\nAnd hey...\nMistakes are the only way up.\nFollow your true Self."
+            fast = "Thank you for reading this."
+
+            # Tell the story with the typewriter effect
+            typewriter_effect(story)
+            typewriter_effect(message)
+            typewriter_effect(fast, min_delay=0, max_delay=0.1)
+
         if args.compare:
             compare_predictions()
