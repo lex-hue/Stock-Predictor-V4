@@ -6,7 +6,7 @@
 
 ---
 
-## Now On Colab! [![Open SPV4 In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Qerim-iseni09/Stock-Predictor-V4/blob/main/SPV4.ipynb)
+## Now On Colab! [![Open SPV4 In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lex-hue/Stock-Predictor-V4/blob/main/SPV4.ipynb)
 
 ---
 # Content Table
@@ -30,13 +30,13 @@
 - RAM: 10 GB (without a GPU)
 - Supported Operating Systems: Linux, Mac, or Windows
 
-If your PC meets at least 70% of these recommendations, it should perform well during the training process. If your specs fall below this threshold, consider running the program on [Colab](https://colab.research.google.com/github/Qerim-iseni09/Stock-Predictor-V4/blob/main/SPV4.ipynb) (highly recommended) or on your local machine (May take long).
+If your PC meets at least 70% of these recommendations, it should perform well during the training process. If your specs fall below this threshold, consider running the program on [Colab](https://colab.research.google.com/github/lex-hue/Stock-Predictor-V4/blob/main/SPV4.ipynb) (highly recommended) or on your local machine (May take long).
 
 ---
 
 ## 1a. Installation
 ```
-git clone https://github.com/Qerim-iseni09/Stock-Predictor-V4.git
+git clone https://github.com/lex-hue/Stock-Predictor-V4.git
 cd Stock-Predictor-V4
 python SPV4.py --install
 ```
